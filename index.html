@@ -1,0 +1,1826 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Уровни игры</title>
+<!-- Приложение на телефоне (LevelEditorSync_Plan.md §7, этап 4): иконка на главном экране, открывается без сети (sw.js). -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#2f6fde">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Уровни">
+<!-- Страница уровней (Bootstrap/Docs/LevelEditorWeb_Plan.md §5). С Unity: Tools → Levels → Open Level Editor. Без Unity (телефон, GitHub Pages): LevelEditorSync_Plan.md §7. -->
+<style>
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --line: #e2e5ea; --text: #1d2330; --muted: #6b7280; --accent: #2f6fde;
+  --hard: #fde3e3; --hard-line: #f2b8b8; --blevel: #fff4cc; --blevel-line: #ecd98a; --unlock: #e6effd; --unlock-line: #b9cff3;
+  --warn: #b45309; --warn-bg: #fff7e6; --err: #c0392b; --ok: #2e7d32; --chip: #eef1f6; --input: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #15181e; --panel: #1d2128; --line: #2e343e; --text: #e6e8ec; --muted: #9aa3b2; --accent: #6ea0ff;
+    --hard: #3d2427; --hard-line: #6b3a3f; --blevel: #3b3420; --blevel-line: #6b5d2c; --unlock: #1c2a40; --unlock-line: #2f4a72;
+    --warn: #f0b45a; --warn-bg: #3a2f1c; --err: #ff7b6b; --ok: #7ccf83; --chip: #2a303a; --input: #181b21;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+header { position: sticky; top: 0; z-index: 5; background: var(--panel); border-bottom: 1px solid var(--line); padding: 10px 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+header h1 { font-size: 17px; margin: 0 8px 0 0; }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; margin-right: 6px; background: var(--muted); }
+.dot.on { background: var(--ok); } .dot.off { background: var(--err); } .dot.play { background: var(--warn); }
+.status { color: var(--muted); font-size: 13px; }
+.spacer { flex: 1; }
+button { font: inherit; border: 1px solid var(--line); background: var(--panel); color: var(--text); border-radius: 7px; padding: 5px 10px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+button.small { padding: 2px 8px; font-size: 12px; }
+button.danger:hover { border-color: var(--err); color: var(--err); }
+button:disabled { opacity: .35; cursor: default; }
+.chips { display: flex; gap: 4px; }
+.chips button.on { background: var(--chip); border-color: var(--accent); }
+main { padding: 12px 16px 60px; max-width: 1400px; margin: 0 auto; }
+.banner { padding: 10px 14px; border-radius: 8px; margin-bottom: 10px; background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn); }
+.banner.err { color: var(--err); border-color: var(--err); background: transparent; }
+/* overflow: clip, не hidden: hidden делает таблицу контейнером прокрутки и ломает sticky-шапку. */
+.table { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: clip; }
+.row { display: grid; grid-template-columns: 30px 50px 92px 56px minmax(200px, 3fr) 120px 56px 130px 64px 92px 150px; align-items: center; border-top: 1px solid var(--line); }
+.row > div { padding: 7px 8px; overflow: hidden; text-overflow: ellipsis; }
+.row.head { border-top: 0; font-weight: 600; color: var(--muted); font-size: 12px; background: var(--chip); position: sticky; top: var(--hdr, 53px); z-index: 4; }
+.row.level { cursor: pointer; }
+.row.level.hard { background: var(--hard); }
+.row.open { box-shadow: inset 3px 0 0 var(--accent); }
+.handle { cursor: grab; color: var(--muted); text-align: center; user-select: none; touch-action: none; font-size: 16px; padding: 7px 0 !important; }
+body.dragging-now, body.dragging-now * { cursor: grabbing !important; user-select: none; }
+.handle:active { cursor: grabbing; }
+.seq.dragging { opacity: .45; }
+.seq.drop-before { box-shadow: inset 0 3px 0 var(--accent); }
+.seq.drop-after { box-shadow: inset 0 -3px 0 var(--accent); }
+.num { font-weight: 700; font-size: 15px; }
+.c { text-align: center; }
+.tasks-cell { font-size: 13px; }
+.tasks-cell .sub { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tasks-cell .sub b { color: var(--muted); font-weight: 600; margin-right: 4px; }
+.state { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.state.saved { color: var(--ok); } .state.conflict, .state.error { color: var(--err); } .state.edited, .state.saving, .state.pending { color: var(--warn); }
+.badge { display: inline-block; border-radius: 6px; padding: 0 6px; font-size: 12px; background: var(--chip); }
+.badge.hard { background: var(--hard-line); }
+.issues-n { color: var(--warn); font-size: 12px; margin-left: 4px; }
+.mv { display: inline-flex; gap: 2px; margin-left: 6px; }
+.mv button { padding: 0 6px; font-size: 12px; line-height: 18px; }
+/* Открытие способности и бонусный уровень — строки той же ленты. */
+.line { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; border-top: 1px solid var(--line); padding: 6px 10px 6px 0; font-size: 13px; }
+.line .handle { width: 30px; flex: none; }
+.line.unlock { background: var(--unlock); }
+.line.bonus { background: var(--blevel); cursor: pointer; }
+.line select { width: auto; max-width: 230px; }
+.line .what { font-weight: 600; }
+.line .muted, .muted { color: var(--muted); }
+.editor { border-top: 1px solid var(--line); padding: 14px 16px 18px; background: var(--bg); }
+.editor.hard { background: color-mix(in srgb, var(--hard) 55%, var(--bg)); }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }
+fieldset { border: 1px solid var(--line); border-radius: 9px; padding: 8px 12px 12px; margin: 0; background: var(--panel); min-width: 0; }
+legend { font-weight: 600; padding: 0 4px; }
+label.f { display: grid; grid-template-columns: 1fr 120px; gap: 8px; align-items: center; margin-top: 6px; font-size: 13px; }
+label.f.wide { grid-template-columns: 1fr; }
+label.f.auto { grid-template-columns: 1fr auto; }
+label.f span small { color: var(--muted); display: block; font-size: 11px; }
+input, select, textarea { font: inherit; color: var(--text); background: var(--input); border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; width: 100%; min-width: 0; }
+input:focus, select:focus, textarea:focus { outline: 2px solid color-mix(in srgb, var(--accent) 40%, transparent); border-color: var(--accent); }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.stars-preview { margin-top: 10px; font-size: 13px; color: var(--muted); }
+.stars-preview b { color: var(--text); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; padding: 4px 12px; }
+.seg button.on { background: var(--accent); color: #fff; }
+.seg button.on.hard { background: var(--err); }
+.subs { margin-top: 12px; display: grid; gap: 10px; }
+.sublevel { border: 1px solid var(--line); border-radius: 9px; background: var(--panel); padding: 10px 12px; }
+.sublevel-head { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+.sublevel-head h4 { margin: 0; font-size: 14px; }
+.sublevel-head select { width: auto; }
+.task { display: grid; grid-template-columns: 220px 1fr auto; gap: 8px; align-items: start; padding: 7px 0; border-top: 1px dashed var(--line); }
+.task:first-of-type { border-top: 0; }
+.task-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px 10px; }
+.task-fields label { font-size: 12px; color: var(--muted); display: grid; gap: 2px; }
+.asset { font-size: 13px; }
+.asset .chip { display: inline-block; background: var(--chip); border-radius: 6px; padding: 1px 7px; margin-right: 6px; }
+.rewards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+.reward { border: 1px solid var(--blevel-line); border-radius: 9px; background: var(--panel); padding: 8px; display: grid; gap: 6px; }
+.reward-head { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.reward-head .handle { padding: 2px 8px !important; margin-left: -6px; border-radius: 6px; }
+.reward-head .handle:hover { background: var(--chip); }
+.reward.empty { border-style: dashed; place-items: center; min-height: 92px; }
+.reward.drop { outline: 2px solid var(--accent); }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
+.toolbar input { width: 70px; }
+.notes { margin-top: 12px; display: grid; gap: 6px; }
+.note { font-size: 13px; padding: 6px 10px; border-radius: 7px; background: var(--warn-bg); color: var(--warn); }
+.note.err { color: var(--err); border: 1px solid var(--err); background: transparent; }
+.paths { margin-top: 10px; color: var(--muted); font-size: 12px; }
+.empty { padding: 30px; text-align: center; color: var(--muted); }
+.legend { display: flex; gap: 10px; font-size: 12px; color: var(--muted); margin: 0 0 10px; flex-wrap: wrap; }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 4px; border: 1px solid var(--line); }
+.busy { position: fixed; right: 16px; bottom: 16px; background: var(--panel); border: 1px solid var(--accent); border-radius: 8px; padding: 8px 12px; z-index: 9; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; z-index: 9; max-width: 90vw; }
+.toast.err { border-color: var(--err); color: var(--err); }
+.flash { animation: flash 1.2s ease-out; }
+@keyframes flash { from { box-shadow: inset 0 0 0 3px var(--accent); } to { box-shadow: none; } }
+/* GitHub (LevelEditorSync_Plan.md §5–6): полоса под шапкой — состояние, «Получить / Отправить», конфликты. */
+.gh { max-width: 1400px; margin: 10px auto 0; padding: 0 16px; display: grid; gap: 8px; }
+.gh-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; font-size: 13px; }
+.gh-bar b { font-weight: 600; }
+.gh-bar a { color: var(--accent); }
+.gh-bar .pending { color: var(--warn); }
+.gh-bar details { width: 100%; color: var(--muted); }
+.gh-bar details summary { cursor: pointer; }
+.gh-conflict { border: 1px solid var(--err); border-radius: 10px; padding: 8px 12px; background: var(--panel); font-size: 13px; }
+.gh-conflict b { color: var(--err); }
+.gh-conflict ul { margin: 6px 0; padding-left: 18px; }
+.gh-conflict .muted { font-size: 12px; }
+@media (max-width: 1000px) {
+  /* Узкий экран (телефон): шапка в три ряда кнопок — не прилипает, иначе закрывает треть экрана. */
+  header { position: static; }
+  .row { grid-template-columns: 30px 44px 1fr 150px; }
+  .row > .hide-s { display: none; }
+  .row.head { top: 0; position: static; }
+  .task { grid-template-columns: 1fr; }
+  .rewards { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Уровни</h1>
+  <span class="status" id="conn"><span class="dot"></span>подключение…</span>
+  <span class="spacer"></span>
+  <div class="chips" id="filters">
+    <button data-action="filter" data-filter="all" class="on">Все</button>
+    <button data-action="filter" data-filter="hard">Сложные</button>
+    <button data-action="filter" data-filter="issues">С замечаниями</button>
+  </div>
+  <button data-action="collapse">Свернуть все</button>
+  <button data-action="add-unlock" title="Способность (бустер, помощник, механика шаров), которая открывается с уровня">+ Открытие</button>
+  <button data-action="add-bonus" title="Бонусный уровень: 9 наград, игрок берёт несколько">+ Бонусный уровень</button>
+  <button class="primary" data-action="add-level">+ Уровень</button>
+</header>
+<section id="gh" class="gh" hidden></section>
+<main id="app"><div class="empty">Загрузка…</div></main>
+
+<script>
+"use strict";
+// ───────────────────────── данные ─────────────────────────
+// Уровень L: key «L3», n, file, hash, server, draft, issues, messages, status, dirty, saving, version, timer, conflict, error.
+// Развитие игры P (Progression.json): unlocks (открытия способностей) и bonusLevels (бонусные уровни-награды) — один файл.
+const S = {
+  state: null,
+  levels: new Map(),
+  prog: null,
+  open: new Set(),      // раскрытые: «L3», «B5» (бонусный после уровня 5)
+  filter: "all",
+  online: null,
+  playing: false,
+  idle: false,
+  busyOp: false,
+  drag: null,           // { kind: "level" | "unlock" | "bonus" | "reward", n, feature, slot }
+};
+
+const ORDER_NAMES = { Together: "Вместе", InOrder: "По одному" };
+const FIELD_LABELS = {
+  _points: "Очки", _text: "Текст для игрока", _letter: "Буква", _times: "Сколько раз",
+  _letters: "Букв в слове", _words: "Сколько слов", _stones: "Сколько камней",
+};
+const REWARD_NAMES = { Coins: "Монеты", Booster: "Бустер", Helper: "Помощник", InfiniteLives: "Бесконечные жизни" };
+const REWARD_UNITS = { Coins: "монет", Booster: "шт.", Helper: "шт.", InfiniteLives: "мин" };
+const ITEM_NAMES = { LongestWord: "Длинное слово", Multiplier: "x2", BreakAll: "Очистка поля", AddLetters: "Новые буквы", Wildcard: "Джокер *" };
+const STATUS_TEXT = { saved: "сохранено", edited: "изменено…", saving: "сохраняется…", conflict: "конфликт", error: "ошибка", offline: "нет связи", pending: "в файле · ждёт Unity" };
+// 9 наград нового бонусного уровня — потом правятся.
+const DEFAULT_REWARDS = [
+  { kind: "Coins", item: "", amount: 50 }, { kind: "Coins", item: "", amount: 100 }, { kind: "Coins", item: "", amount: 200 },
+  { kind: "Booster", item: "LongestWord", amount: 1 }, { kind: "Booster", item: "Multiplier", amount: 1 }, { kind: "Booster", item: "BreakAll", amount: 1 },
+  { kind: "Helper", item: "AddLetters", amount: 1 }, { kind: "Helper", item: "Wildcard", amount: 1 }, { kind: "InfiniteLives", item: "", amount: 30 },
+];
+
+const clone = (o) => JSON.parse(JSON.stringify(o));
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const app = document.getElementById("app");
+// Без Unity (телефон, GitHub Pages): адреса /api/... выполняет сама страница (Local ниже), данные — в IndexedDB.
+// Проверить на компьютере: ?standalone в адресе.
+const STANDALONE = !["localhost", "127.0.0.1", "[::1]"].includes(location.hostname) || new URLSearchParams(location.search).has("standalone");
+
+async function api(method, url, body) {
+  if (STANDALONE) return Local.api(method, url, body);
+  const opts = { method, headers: {} };
+  if (method !== "GET") opts.headers["X-Level-Editor"] = "1";
+  if (body !== undefined) { opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); }
+  const r = await fetch(url, opts);
+  let json = null;
+  try { json = await r.json(); } catch { json = {}; }
+  return { ok: r.ok, status: r.status, body: json };
+}
+
+function taskType(name) { return (S.state?.taskTypes || []).find((t) => t.type === name); }
+function regular() { return [...S.levels.values()].filter((L) => L.draft).sort((a, b) => a.n - b.n); }
+function levelCount() { return regular().length; }
+function unlocks() { return S.prog?.draft?.unlocks || []; }
+function bonuses() { return S.prog?.draft?.bonusLevels || []; }
+function bonusAt(n) { return bonuses().find((b) => b.afterLevel === n); }
+function featureInfo(f) { return (S.state?.features || []).find((x) => x.feature === f); }
+function rewardSlots() { return S.state?.rewards?.slots || 9; }
+
+function toast(text, err) {
+  const el = document.createElement("div");
+  el.className = "toast" + (err ? " err" : "");
+  el.textContent = text;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), err ? 6000 : 3500);
+}
+
+// ───────────────────────── загрузка и опрос ─────────────────────────
+function applyEntry(T, e) {
+  T.file = e.file;
+  T.issues = e.issues || [];
+  if (e.error) { T.error = e.error; T.status = "error"; return; }
+  if (T.dirty || T.saving) {
+    if (e.hash !== T.hash && !T.saving) { T.conflict = { hash: e.hash, data: e.data }; T.status = "conflict"; }
+    return;
+  }
+  // Пока Unity в фоне, то, что сохранено только в файл, остаётся «ждёт Unity».
+  const stillPending = S.idle && T.status === "pending" && e.hash === T.hash;
+  T.hash = e.hash; T.server = e.data; T.draft = clone(e.data);
+  if (T.status !== "error" && !stillPending) T.status = "saved";
+}
+
+function applyState(st, reset) {
+  S.state = st;
+  S.playing = st.playing;
+  S.idle = !!st.unityIdle;
+  if (reset) { for (const L of S.levels.values()) clearTimeout(L.timer); S.levels = new Map(); }
+  const seen = new Set();
+  for (const e of st.levels || []) {
+    const key = "L" + e.level;
+    seen.add(key);
+    let L = S.levels.get(key);
+    if (!L) { L = { key, kind: "level", n: e.level, version: 0, status: "saved" }; S.levels.set(key, L); }
+    applyEntry(L, e);
+  }
+  for (const [k, L] of S.levels) if (!seen.has(k) && !L.dirty) S.levels.delete(k);
+  if (!S.prog) S.prog = { key: "P", kind: "progression", version: 0, status: "saved" };
+  if (st.progression && st.progression.data) applyEntry(S.prog, st.progression);
+  else if (!S.prog.draft) S.prog.draft = { unlocks: [], bonusLevels: [] };
+  setOnline(true);
+  render();
+}
+
+async function loadState() {
+  const r = await api("GET", "/api/state");
+  if (!r.ok) throw new Error(r.body.error || r.status);
+  applyState(r.body, false);
+}
+
+function tracked() { return [...S.levels.values(), S.prog].filter(Boolean); }
+
+async function poll() {
+  try {
+    if (!S.busyOp && !S.drag) {
+      const r = await api("GET", "/api/hashes");
+      if (!r.ok) throw new Error();
+      setOnline(true);
+      const files = r.body.files || {};
+      const known = new Map(tracked().filter((T) => T.file && T.hash).map((T) => [T.file, T.hash]));
+      let changed = Object.keys(files).length !== known.size;
+      for (const [f, h] of Object.entries(files)) if (known.get(f) !== h) changed = true;
+      if (changed && !tracked().some((T) => T.saving) && !S.busyOp) await loadState();
+    }
+  } catch { setOnline(false); }
+  setTimeout(poll, 1500);
+}
+
+function setOnline(on) {
+  S.online = on;
+  const el = document.getElementById("conn");
+  if (S.state?.standalone) el.innerHTML = '<span class="dot on"></span>Без Unity · сохраняется на этом устройстве';
+  else if (!on) el.innerHTML = '<span class="dot off"></span>Unity не отвечает — правки сохранятся, когда он вернётся';
+  else if (S.idle) el.innerHTML = '<span class="dot play"></span>Unity в фоне — правки пишутся в файлы, в ассеты попадут, когда окно Unity станет активным';
+  else if (S.playing) el.innerHTML = '<span class="dot play"></span>Unity · Play Mode (префабы обновятся после выхода)';
+  else el.innerHTML = `<span class="dot on"></span>Unity · ${esc(S.state?.folder || "")}`;
+}
+
+// ───────────────────────── сохранение ─────────────────────────
+function markDirty(T) {
+  T.dirty = true; T.version++; T.status = "edited";
+  clearTimeout(T.timer);
+  T.timer = setTimeout(() => save(T), 700);
+}
+
+async function save(T, overwrite) {
+  if (T.saving) { T.pending = true; return; }
+  if (T.conflict && !overwrite) { render(); return; }
+  clearTimeout(T.timer);
+  T.saving = true; T.status = "saving";
+  const version = T.version;
+  const baseHash = overwrite && T.conflict ? T.conflict.hash : T.hash || null;
+  if (T.kind === "level") updateRow(T);
+  try {
+    const url = T.kind === "progression" ? "/api/progression" : `/api/level/${T.n}`;
+    const r = await api("PUT", url, { baseHash, data: T.draft });
+    if (r.status === 409) {
+      T.conflict = { hash: r.body.hash, data: r.body.data }; T.status = "conflict";
+    } else if (!r.ok && r.status !== 422) {
+      T.error = r.body.error || `ошибка ${r.status}`; T.status = "error";
+    } else {
+      T.hash = r.body.hash; T.file = r.body.file; T.server = r.body.data;
+      T.issues = r.body.issues || []; T.messages = r.body.messages || [];
+      T.conflict = null; T.error = r.body.error || null;
+      if (T.version === version) { T.draft = clone(r.body.data); T.dirty = false; T.status = T.error ? "error" : r.body.pending ? "pending" : "saved"; }
+      else { T.status = "edited"; T.timer = setTimeout(() => save(T), 400); }
+    }
+    setOnline(true);
+  } catch {
+    T.status = "offline"; setOnline(false);
+    T.timer = setTimeout(() => save(T), 3000);
+  }
+  T.saving = false;
+  if (T.pending) { T.pending = false; await save(T); }
+  render();
+}
+
+// Перед переносом и вставкой уровней: несохранённые правки — сохранить (страница и Unity должны видеть одно и то же).
+async function flushSaves() {
+  for (const T of tracked()) if (T.dirty && !T.conflict) await save(T);
+  return !tracked().some((T) => T.dirty || T.saving || T.conflict);
+}
+
+// ───────────────────────── уровни: перенос и вставка (Unity переименовывает ассеты) ─────────────────────────
+async function op(url, body, remapOpen, done) {
+  if (S.busyOp) return;
+  if (!(await flushSaves())) { toast("Сначала разберите конфликт или ошибку сохранения", true); return; }
+  S.busyOp = true;
+  const busy = document.createElement("div");
+  busy.className = "busy"; busy.textContent = STANDALONE ? "Переставляю уровни…" : "Unity переименовывает уровни…";
+  document.body.appendChild(busy);
+  try {
+    const r = await api("POST", url, body);
+    if (r.status === 503) { toast(r.body.error || "Unity в фоне — сделайте окно Unity активным и повторите", true); return; }
+    if (!r.body.levels) { toast(r.body.error || `ошибка ${r.status}`, true); return; }
+    if (remapOpen) S.open = new Set([...S.open].map(remapOpen).filter(Boolean));
+    applyState(r.body, true);
+    const res = r.body.result || {};
+    if (res.error) toast("Не получилось: " + res.error, true);
+    else { done?.(res); render(); if (res.messages?.length) toast(res.messages.join(" · ")); }
+  } catch { toast("Нет связи с Unity", true); setOnline(false); }
+  finally { busy.remove(); S.busyOp = false; }
+}
+
+// Номер уровня после переноса from → to (остальные сдвигаются).
+function shifted(k, from, to) {
+  if (k === from) return to;
+  if (from < to && k > from && k <= to) return k - 1;
+  if (from > to && k >= to && k < from) return k + 1;
+  return k;
+}
+
+function moveLevel(from, to) {
+  const count = levelCount();
+  if (to < 1 || to > count || from === to) return;
+  op("/api/move", { kind: "level", from, to }, (k) => (k[0] === "L" ? "L" + shifted(+k.slice(1), from, to) : k),
+    () => flash(`row-L${to}`));
+}
+
+function insertLevel(after) {
+  op("/api/insert", { after }, (k) => (k[0] === "L" && +k.slice(1) > after ? "L" + (+k.slice(1) + 1) : k),
+    () => { S.open.add("L" + (after + 1)); flash(`row-L${after + 1}`); });
+}
+
+function flash(id) {
+  setTimeout(() => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.scrollIntoView({ block: "center", behavior: "smooth" });
+    el.classList.add("flash");
+  }, 50);
+}
+
+// ───────────────────────── развитие игры: открытия и бонусные уровни (данные Progression.json) ─────────────────────────
+function editProg(change) { change(S.prog.draft); markDirty(S.prog); render(); }
+
+function moveUnlock(feature, level) {
+  const u = unlocks().find((x) => x.feature === feature);
+  level = Math.max(1, Math.min(level, levelCount() + 1));
+  if (!u || u.level === level) return;
+  editProg(() => { u.level = level; });
+  flash(`unlock-${feature}`);
+}
+
+function moveBonus(from, to) {
+  const b = bonusAt(from);
+  if (!b || from === to) return;
+  if (to < 1 || to > Math.max(1, levelCount())) { toast("Бонусный уровень стоит после уровня — такого уровня нет", true); return; }
+  if (bonusAt(to)) { toast(`После уровня ${to} уже есть бонусный уровень`, true); return; }
+  if (S.open.delete("B" + from)) S.open.add("B" + to);
+  editProg(() => { b.afterLevel = to; });
+  flash(`bonus-${to}`);
+}
+
+function addBonus() {
+  const last = levelCount();
+  let at = 0;
+  for (let n = last; n >= 1; n--) if (!bonusAt(n)) { at = n; break; }
+  if (!at) { toast("После каждого уровня уже есть бонусный уровень", true); return; }
+  editProg((d) => {
+    d.bonusLevels.push({ afterLevel: at, picks: S.state?.rewards?.picks || 3, rewards: clone(DEFAULT_REWARDS) });
+    d.bonusLevels.sort((a, b) => a.afterLevel - b.afterLevel);
+  });
+  S.open.add("B" + at);
+  render();
+  flash(`bonus-${at}`);
+  toast(`Бонусный уровень — после уровня ${at}. Перетащите его ⠿ на нужное место.`);
+}
+
+function addUnlock() {
+  const used = new Set(unlocks().map((u) => u.feature));
+  const f = (S.state?.features || []).find((x) => !used.has(x.feature));
+  if (!f) { toast("Все способности уже открываются", true); return; }
+  const level = Math.min(f.planLevel || 1, levelCount() + 1);
+  editProg((d) => { d.unlocks.push({ feature: f.feature, level, title: f.title, tutorial: f.tutorial, showOnMap: f.showOnMap }); });
+  flash(`unlock-${f.feature}`);
+}
+
+// ───────────────────────── описание для строк ─────────────────────────
+function describeTask(t) {
+  if (!t || !t.type) return t && t.asset !== undefined && !t.type ? `ассет ${t.name || "?"} (без типа)` : "тип не выбран";
+  const s = t.settings || {};
+  let text;
+  switch (t.type) {
+    case "ScorePointsTask": text = `Набрать ${s._points ?? (s._pointsRange ? Math.max(s._pointsRange.x, s._pointsRange.y) : "?")} очков`; break;
+    case "UseLetterTask": text = `Буква ${(s._letter || "?").toUpperCase()} × ${s._times}`; break;
+    case "ExactLengthWordTask": text = `${s._words > 1 ? s._words + " слова" : "Слово"} из ${s._letters} букв`; break;
+    case "MinLengthWordTask": text = `${s._words > 1 ? s._words + " слова" : "Слово"} из ${s._letters}+ букв`; break;
+    case "DestroyStonesTask": text = `Разбить ${s._stones} камней`; break;
+    default: text = (taskType(t.type)?.menu || t.type).split("/").pop();
+  }
+  return t.asset ? `${text} ⧉` : text;
+}
+// Очки ★1 / ★2 / ★3 из одного числа — как LevelConfig.ScoresFor: доли starShares, округление Mathf.RoundToInt
+// (float, половина — к чётному), каждая звезда от 1 и больше предыдущей, последняя — ровно число.
+function roundHalfEven(x) { const f = Math.floor(x), r = x - f; return r > 0.5 ? f + 1 : r < 0.5 ? f : (f % 2 === 0 ? f : f + 1); }
+function starScores(d) {
+  const shares = S.state?.starShares || [0.4, 0.75, 1];
+  const count = shares.length;
+  const total = Math.max(count, d.threeStarScore ?? d.maxScore ?? 300);
+  const out = [];
+  for (let i = 0; i < count; i++) {
+    const raw = i === count - 1 ? total : roundHalfEven(Math.fround(Math.fround(total) * Math.fround(shares[i])));
+    const min = i === 0 ? 1 : out[i - 1] + 1;
+    const max = total - (count - 1 - i);
+    out.push(Math.min(Math.max(raw, min), max));
+  }
+  return out;
+}
+function starsPreview(d) {
+  const shares = S.state?.starShares || [0.4, 0.75, 1];
+  return starScores(d).map((s, i) => `★${i + 1} <b>${s}</b> <small>(${Math.round(shares[i] * 100)}%)</small>`).join(" · ");
+}
+function wordsText(d) {
+  const tier = d.wordTier || "по умолч.";
+  const r = d.wordDifficulty || [0, 1];
+  return r[0] === 0 && r[1] === 1 ? tier : `${tier} · ${r[0]}–${r[1]}`;
+}
+function rewardText(r) {
+  if (!r) return "—";
+  const item = r.item ? ` «${ITEM_NAMES[r.item] || r.item}»` : "";
+  return r.kind === "Coins" ? `${r.amount} монет` : r.kind === "InfiniteLives" ? `Жизни ∞ ${r.amount} мин` : `${REWARD_NAMES[r.kind] || r.kind}${item} × ${r.amount}`;
+}
+
+// ───────────────────────── отрисовка ─────────────────────────
+const handle = (kind, attrs) => `<div class="handle" data-drag="${kind}" ${attrs} title="Перетащите, чтобы переставить">⠿</div>`;
+
+function rowHtml(L) {
+  const d = L.draft || {};
+  const subs = d.subLevels || [];
+  const tasks = subs.map((s, i) => `<span class="sub">${subs.length > 1 ? `<b>${i + 1}.</b>` : ""}${esc((s.tasks || []).map(describeTask).join("; ") || "нет заданий")}</span>`).join("");
+  const objects = `${d.startObjects ?? "?"}${d.stones ? ` (${d.stones} камн.)` : ""}${d.maxObjects ? ` ≤${d.maxObjects}` : ""}`;
+  const st = L.status || "saved";
+  const issues = (L.issues || []).length ? `<span class="issues-n" title="${esc(L.issues.join("\n"))}">⚠ ${L.issues.length}</span>` : "";
+  const count = levelCount();
+  return `<div class="row level seq ${d.hard ? "hard" : ""} ${S.open.has(L.key) ? "open" : ""}" data-action="toggle" data-l="${L.key}" data-seq="level" data-n="${L.n}" id="row-${L.key}">
+    ${handle("level", `data-n="${L.n}"`)}
+    <div class="num">${L.n}</div>
+    <div>${d.hard ? '<span class="badge hard">Сложный</span>' : '<span class="badge">Обычный</span>'}</div>
+    <div class="c hide-s">${subs.length}</div>
+    <div class="tasks-cell hide-s">${tasks}</div>
+    <div class="hide-s">${esc(wordsText(d))}</div>
+    <div class="c hide-s">${d.steps ?? ""}</div>
+    <div class="c hide-s">${starScores(d).join(" / ")}</div>
+    <div class="c hide-s">${d.coins || "—"}</div>
+    <div class="c hide-s">${objects}</div>
+    <div><span class="state ${st}">${STATUS_TEXT[st] || st}</span>${issues}
+      <span class="mv"><button data-action="level-up" data-n="${L.n}" title="Поднять уровень" ${L.n > 1 ? "" : "disabled"}>↑</button><button data-action="level-down" data-n="${L.n}" title="Опустить уровень" ${L.n < count ? "" : "disabled"}>↓</button></span></div>
+  </div>`;
+}
+
+function unlockHtml(u) {
+  const used = new Set(unlocks().filter((x) => x !== u).map((x) => x.feature));
+  const options = (S.state.features || []).map((f) =>
+    `<option value="${esc(f.feature)}" ${f.feature === u.feature ? "selected" : ""} ${used.has(f.feature) ? "disabled" : ""}>${esc(f.title)}${used.has(f.feature) ? " — уже есть" : ""}</option>`).join("");
+  const tutorials = (S.state.tutorials || []).map((t) => `<option value="${esc(t)}" ${t === u.tutorial ? "selected" : ""}>${t === "None" ? "без обучения" : esc(t)}</option>`).join("");
+  const beyond = u.level > levelCount() ? ' <span class="muted">(такого уровня ещё нет)</span>' : "";
+  return `<div class="line unlock seq" data-seq="unlock" data-feature="${esc(u.feature)}" id="unlock-${esc(u.feature)}">
+    ${handle("unlock", `data-feature="${esc(u.feature)}"`)}
+    <span>🔓 Открывается</span>
+    <select data-action="unlock-feature" data-feature="${esc(u.feature)}" title="Какая способность">${options}</select>
+    <span class="what">с уровня ${u.level}</span>${beyond}
+    <select data-action="unlock-tutorial" data-feature="${esc(u.feature)}" title="Обучение на уровне открытия">${tutorials}</select>
+    <span class="spacer"></span>
+    <span class="mv"><button data-action="unlock-up" data-feature="${esc(u.feature)}" ${u.level > 1 ? "" : "disabled"} title="На уровень раньше">↑</button><button data-action="unlock-down" data-feature="${esc(u.feature)}" ${u.level <= levelCount() ? "" : "disabled"} title="На уровень позже">↓</button></span>
+    <button class="small danger" data-action="unlock-delete" data-feature="${esc(u.feature)}" title="Убрать открытие">✕</button>
+  </div>`;
+}
+
+function bonusHtml(b) {
+  const n = b.afterLevel;
+  const open = S.open.has("B" + n);
+  const rewards = b.rewards || [];
+  const stars = (S.state.starsPerLevel || 3) * n;
+  const preview = rewards.slice(0, 3).map(rewardText).join(", ") + (rewards.length > 3 ? "…" : "");
+  const count = levelCount();
+  let html = `<div class="line bonus seq ${open ? "open" : ""}" data-seq="bonus" data-n="${n}" data-action="toggle-bonus" id="bonus-${n}">
+    ${handle("bonus", `data-n="${n}"`)}
+    <span class="what">🎁 Бонусный уровень</span><span>после уровня ${n} · игрок берёт ${b.picks} из ${rewards.length} · открывается за ${stars} ★</span>
+    <span class="muted">${esc(preview)}</span>
+    <span class="spacer"></span>
+    <span class="mv"><button data-action="bonus-up" data-n="${n}" ${n > 1 ? "" : "disabled"} title="Выше">↑</button><button data-action="bonus-down" data-n="${n}" ${n < count ? "" : "disabled"} title="Ниже">↓</button></span>
+  </div>`;
+  if (open) html += bonusEditorHtml(b);
+  return html;
+}
+
+function bonusEditorHtml(b) {
+  const n = b.afterLevel;
+  const slots = rewardSlots();
+  const kinds = S.state.rewards?.kinds || Object.keys(REWARD_NAMES);
+  const cards = [];
+  for (let i = 0; i < slots; i++) {
+    const r = b.rewards[i];
+    if (!r) { cards.push(`<div class="reward empty" data-slot="${i}" data-bonus="${n}"><button class="small" data-action="reward-add" data-n="${n}">+ Награда</button></div>`); continue; }
+    const items = r.kind === "Booster" ? S.state.rewards?.boosters : r.kind === "Helper" ? S.state.rewards?.helpers : null;
+    const at = `data-n="${n}" data-slot="${i}"`;
+    cards.push(`<div class="reward" data-slot="${i}" data-bonus="${n}">
+      <div class="reward-head">${handle("reward", at)}<span>Клетка ${i + 1}</span><span class="spacer"></span>
+        <button class="small" data-action="reward-left" ${at} ${i > 0 ? "" : "disabled"} title="Раньше">←</button>
+        <button class="small" data-action="reward-right" ${at} ${i < b.rewards.length - 1 ? "" : "disabled"} title="Позже">→</button>
+        <button class="small danger" data-action="reward-delete" ${at} title="Убрать награду">✕</button></div>
+      <select data-action="reward-kind" ${at}>${kinds.map((k) => `<option value="${k}" ${k === r.kind ? "selected" : ""}>${REWARD_NAMES[k] || k}</option>`).join("")}</select>
+      ${items ? `<select data-action="reward-item" ${at}>${items.map((it) => `<option value="${it}" ${it === r.item ? "selected" : ""}>${esc(ITEM_NAMES[it] || it)}</option>`).join("")}</select>` : ""}
+      <label class="f auto"><span>${REWARD_UNITS[r.kind] || "сколько"}</span><input type="number" min="1" data-action="reward-amount" ${at} data-key="B${n}:r${i}" value="${r.amount}" style="width:90px"></label>
+    </div>`);
+  }
+  return `<div class="editor" id="editor-B${n}">
+    <div class="toolbar" style="margin-top:0">
+      <span><b>Бонусный уровень после уровня ${n}</b> — не игровой уровень: игрок выбирает награды из ${slots} клеток.</span>
+      <span class="spacer"></span>
+      <label class="f auto" style="margin:0"><span>Игрок берёт</span><input type="number" min="1" max="${slots}" data-action="bonus-picks" data-n="${n}" data-key="B${n}:picks" value="${b.picks}" style="width:70px"></label>
+    </div>
+    <div class="rewards">${cards.join("")}</div>
+    <div class="toolbar"><span class="muted">Награды переставляются перетаскиванием ⠿ или ← →.</span><span class="spacer"></span>
+      <button class="danger" data-action="bonus-delete" data-n="${n}">Убрать бонусный уровень</button></div>
+  </div>`;
+}
+
+function field(L, label, bind, type, opts = {}) {
+  const v = get(L.draft, bind);
+  const attrs = `data-l="${L.key}" data-bind="${bind}" data-type="${type}" data-key="${L.key}:${bind}"`;
+  let input;
+  if (type === "select") input = `<select ${attrs}>${opts.options.map(([val, name]) => `<option value="${esc(val)}" ${String(val) === String(v ?? "") ? "selected" : ""}>${esc(name)}</option>`).join("")}</select>`;
+  else if (type === "words") input = `<input ${attrs} value="${esc((v || []).join(", "))}" placeholder="STAR, BOOK">`;
+  else input = `<input ${attrs} type="${type === "str" ? "text" : "number"}" ${opts.step ? `step="${opts.step}"` : ""} ${opts.min !== undefined ? `min="${opts.min}"` : ""} ${opts.max !== undefined ? `max="${opts.max}"` : ""} value="${esc(v)}">`;
+  return `<label class="f ${opts.wide ? "wide" : ""}"><span>${label}${opts.hint ? `<small>${esc(opts.hint)}</small>` : ""}</span>${input}</label>`;
+}
+
+function inputOnly(L, bind, type, opts = {}) {
+  const v = get(L.draft, bind);
+  return `<input data-l="${L.key}" data-bind="${bind}" data-type="${type}" data-key="${L.key}:${bind}" type="${type === "str" ? "text" : "number"}" ${opts.step ? `step="${opts.step}"` : ""} ${opts.min !== undefined ? `min="${opts.min}"` : ""} ${opts.max !== undefined ? `max="${opts.max}"` : ""} value="${esc(v)}" ${opts.title ? `title="${esc(opts.title)}"` : ""}>`;
+}
+
+function taskHtml(L, si, ti, t) {
+  const base = `subLevels.${si}.tasks.${ti}`;
+  const types = S.state.taskTypes || [];
+  const ids = `data-l="${L.key}" data-sub="${si}" data-task="${ti}"`;
+  const remove = `<button class="small danger" data-action="del-task" ${ids} title="Удалить задание">✕</button>`;
+  if (t.asset !== undefined) {
+    return `<div class="task"><div class="asset"><span class="chip">ассет</span>${esc(t.name || "(пусто)")}</div>
+      <div class="asset">${esc(describeTask(t))} <small class="muted">— настройки в ассете задания</small>
+        ${t.type ? `<button class="small" data-action="unlink-asset" ${ids}>Сделать заданием уровня</button>` : ""}</div>${remove}</div>`;
+  }
+  const select = `<select data-action="task-type" ${ids} data-key="${L.key}:${base}.type">
+      <option value="" ${!t.type ? "selected" : ""}>— тип задания —</option>
+      ${types.map((tt) => `<option value="${esc(tt.type)}" ${tt.type === t.type ? "selected" : ""}>${esc(tt.menu)}</option>`).join("")}</select>`;
+  const tt = taskType(t.type);
+  let fields = "";
+  if (tt) {
+    fields = tt.fields.map((f) => {
+      const bind = `${base}.settings.${f.name}`;
+      const label = FIELD_LABELS[f.name] || f.label;
+      const tip = esc(f.tooltip || "");
+      let control;
+      if (f.kind === "vector2int" || f.kind === "vector2") {
+        const step = f.kind === "vector2" ? "0.01" : "1";
+        const kind = f.kind === "vector2" ? "float" : "int";
+        control = `<div class="pair">${inputOnly(L, bind + ".x", kind, { step, title: "от" })}${inputOnly(L, bind + ".y", kind, { step, title: "до" })}</div>`;
+      } else if (f.kind === "bool") {
+        control = `<input type="checkbox" data-l="${L.key}" data-bind="${bind}" data-type="bool" data-key="${L.key}:${bind}" ${get(L.draft, bind) ? "checked" : ""} style="width:auto">`;
+      } else if (f.kind === "enum") {
+        const v = get(L.draft, bind);
+        control = `<select data-l="${L.key}" data-bind="${bind}" data-type="int" data-key="${L.key}:${bind}">${f.options.map((o) => `<option value="${o.value}" ${o.value === v ? "selected" : ""}>${esc(o.name)}</option>`).join("")}</select>`;
+      } else {
+        control = inputOnly(L, bind, f.kind === "string" ? "str" : f.kind, { step: f.kind === "float" ? "0.01" : undefined, min: f.min });
+      }
+      return `<label title="${tip}">${esc(label)}${control}</label>`;
+    }).join("");
+  }
+  return `<div class="task">${select}<div class="task-fields">${fields}</div>${remove}</div>`;
+}
+
+function editorHtml(L) {
+  const d = L.draft;
+  const tiers = (S.state.tiers || []).map((t) => [t, t || "по умолчанию (LevelProgression)"]);
+  const tutorials = (S.state.tutorials || []).map((t) => [t, t === "None" ? "нет" : t]);
+  const orders = (S.state.orders || []).map((o) => [o, ORDER_NAMES[o] || o]);
+  const subs = (d.subLevels || []).map((s, si) => `
+    <div class="sublevel">
+      <div class="sublevel-head"><h4>Подуровень ${si + 1}</h4>
+        <select data-l="${L.key}" data-bind="subLevels.${si}.order" data-type="str" data-key="${L.key}:subLevels.${si}.order" title="Вместе — все задания сразу; по одному — следующее после текущего">
+          ${orders.map(([v, n]) => `<option value="${v}" ${v === s.order ? "selected" : ""}>${n}</option>`).join("")}</select>
+        <span class="spacer"></span>
+        <button class="small" data-action="add-task" data-l="${L.key}" data-sub="${si}">+ Задание</button>
+        <button class="small danger" data-action="del-sub" data-l="${L.key}" data-sub="${si}" ${d.subLevels.length < 2 ? "disabled" : ""}>Удалить подуровень</button>
+      </div>
+      ${(s.tasks || []).map((t, ti) => taskHtml(L, si, ti, t)).join("") || '<div class="muted">Нет заданий</div>'}
+    </div>`).join("");
+
+  const notes = [];
+  if (L.conflict) notes.push(`<div class="note err">Уровень изменён в Unity, пока здесь были правки.
+      <button class="small" data-action="take-unity" data-l="${L.key}">Взять из Unity</button>
+      <button class="small" data-action="overwrite" data-l="${L.key}">Перезаписать моими</button></div>`);
+  if (L.error) notes.push(`<div class="note err">${esc(L.error)}</div>`);
+  for (const m of L.messages || []) notes.push(`<div class="note">${esc(m)}</div>`);
+  for (const m of L.issues || []) notes.push(`<div class="note">⚠ ${esc(m)}</div>`);
+
+  return `<div class="editor ${d.hard ? "hard" : ""}" id="editor-${L.key}">
+    <div class="grid">
+      <fieldset><legend>Уровень ${L.n}</legend>
+        <label class="f auto"><span>Тип уровня</span><span class="seg">
+          <button data-action="set-hard" data-l="${L.key}" data-value="0" class="${d.hard ? "" : "on"}">Обычный</button>
+          <button data-action="set-hard" data-l="${L.key}" data-value="1" class="${d.hard ? "on hard" : ""}">Сложный</button></span></label>
+        ${field(L, "Ходов", "steps", "int", { min: 1 })}
+        ${field(L, "Монет за победу", "coins", "int", { min: 0, hint: "в игру пока не идёт" })}
+      </fieldset>
+      <fieldset><legend>Звёзды</legend>
+        ${field(L, "Очки на 3 звезды", "threeStarScore", "int", { min: 3, hint: "это же полная полоса очков" })}
+        <div class="stars-preview" id="stars-${L.key}">${starsPreview(d)}</div>
+      </fieldset>
+      <fieldset><legend>Объекты на сцене</legend>
+        ${field(L, "Объектов на старте", "startObjects", "int", { min: 0, hint: "шары + камни" })}
+        ${field(L, "Из них камней", "stones", "int", { min: 0 })}
+        ${field(L, "Лимит объектов", "maxObjects", "int", { min: 0, hint: "0 — без лимита" })}
+      </fieldset>
+      <fieldset><legend>Слова</legend>
+        ${field(L, "Сложность (A1–B2)", "wordTier", "select", { options: tiers })}
+        <label class="f"><span>Сложность слов 0–1<small>от – до</small></span><span class="pair">
+          ${inputOnly(L, "wordDifficulty.0", "float", { step: "0.05", min: 0, max: 1 })}${inputOnly(L, "wordDifficulty.1", "float", { step: "0.05", min: 0, max: 1 })}</span></label>
+        ${field(L, "Стартовые слова", "startWords", "words", { wide: true })}
+        ${field(L, "Обучение", "tutorial", "select", { options: tutorials })}
+        ${field(L, "Слово обучения", "tutorialWord", "str")}
+      </fieldset>
+    </div>
+    <div class="subs">${subs}</div>
+    <div class="toolbar"><button data-action="add-sub" data-l="${L.key}">+ Подуровень</button></div>
+    <div class="toolbar">
+      <button data-action="insert-after" data-n="${L.n}">+ Вставить уровень после ${L.n}</button>
+      <span>Переместить на №</span><input type="number" min="1" max="${levelCount()}" value="${L.n}" id="moveto-${L.key}">
+      <button data-action="move-to" data-l="${L.key}">Переместить</button>
+    </div>
+    ${notes.length ? `<div class="notes">${notes.join("")}</div>` : ""}
+    <div class="paths">${esc(L.file || "")}${d.config ? " · " + esc(d.config) : ""}${d.prefab ? " · " + esc(d.prefab) : ""}</div>
+  </div>`;
+}
+
+function visible(L) {
+  if (S.filter === "hard") return !!L.draft?.hard;
+  if (S.filter === "issues") return (L.issues || []).length > 0 || !!L.conflict || !!L.error;
+  return true;
+}
+
+// Лента: открытия «с уровня N» — над уровнем N, бонусный уровень «после N» — под ним; всё, что дальше последнего, — в конце.
+function render() {
+  if (!S.state) return;
+  const active = document.activeElement;
+  const focus = active?.dataset?.key;
+  const sel = focus && active.selectionStart != null ? [active.selectionStart, active.selectionEnd] : null;
+  const list = regular();
+  const last = list.length ? list[list.length - 1].n : 0;
+  const all = S.filter === "all";
+  let html = `<div class="legend"><span><i style="background:var(--hard)"></i>сложный уровень</span><span><i style="background:var(--unlock)"></i>открытие способности</span><span><i style="background:var(--blevel)"></i>бонусный уровень</span><span>⠿ — перетащить</span><span>⧉ — задание-ассет</span></div>`;
+  if (S.playing) html += `<div class="banner">Unity в Play Mode: ассеты меняются сразу, префабы — после выхода из Play Mode.</div>`;
+  if (S.prog?.conflict) html += `<div class="banner err">Открытия и бонусные уровни изменены в Unity, пока здесь были правки.
+    <button class="small" data-action="take-unity" data-l="P">Взять из Unity</button> <button class="small" data-action="overwrite" data-l="P">Перезаписать моими</button></div>`;
+  if (S.prog?.error) html += `<div class="banner err">${esc(S.prog.error)}</div>`;
+  for (const m of S.prog?.messages || []) html += `<div class="banner">${esc(m)}</div>`;
+  const mapCount = S.state.levelCount;
+  if (mapCount && last > mapCount) html += `<div class="banner">На карте меню ${mapCount} уровней (MenuMapConfig → Level Count), уровни после ${mapCount} на ней не видны.</div>`;
+  const progStatus = S.prog && S.prog.status !== "saved" ? ` · открытия и бонусы: <span class="state ${S.prog.status}">${STATUS_TEXT[S.prog.status] || S.prog.status}</span>` : "";
+  html += `<div class="table"><div class="row head"><div></div><div>№</div><div>Тип</div><div class="c hide-s">Подур.</div><div class="hide-s">Задачи</div><div class="hide-s">Слова</div><div class="c hide-s">Ходы</div><div class="c hide-s">★1 / ★2 / ★3</div><div class="c hide-s">Монеты</div><div class="c hide-s">Объекты</div><div>Статус${progStatus}</div></div>`;
+  const byLevel = (n) => unlocks().filter((u) => u.level === n);
+  let shown = 0;
+  for (const L of list) {
+    if (all) for (const u of byLevel(L.n)) html += unlockHtml(u);
+    if (visible(L)) {
+      shown++;
+      html += rowHtml(L);
+      if (S.open.has(L.key)) html += editorHtml(L);
+    }
+    const b = bonusAt(L.n);
+    if (all && b) html += bonusHtml(b);
+  }
+  if (all) {
+    for (const u of unlocks().filter((u) => u.level > last).sort((a, b) => a.level - b.level)) html += unlockHtml(u);
+    for (const b of bonuses().filter((b) => b.afterLevel > last)) html += bonusHtml(b);
+  }
+  if (!shown) html += `<div class="empty">${list.length ? "Нет уровней под фильтр" : "Уровней нет — нажмите «+ Уровень»"}</div>`;
+  html += `</div>`;
+  app.innerHTML = html;
+  if (focus) {
+    const el = app.querySelector(`[data-key="${CSS.escape(focus)}"]`);
+    if (el) { el.focus(); if (sel && el.setSelectionRange) try { el.setSelectionRange(sel[0], sel[1]); } catch {} }
+  }
+}
+
+function updateRow(L) {
+  const row = document.getElementById(`row-${L.key}`);
+  if (row) row.outerHTML = rowHtml(L);
+}
+
+// ───────────────────────── перетаскивание ─────────────────────────
+// Строка ленты: уровень — на место среди уровней (Unity переименует), открытие — «с уровня» ниже места,
+// бонусный уровень — «после уровня» выше места. Награда — в другую клетку своего бонусного уровня.
+function clearDrop() { app.querySelectorAll(".drop-before, .drop-after, .reward.drop").forEach((e) => e.classList.remove("drop-before", "drop-after", "drop")); }
+
+// Место в ленте: индекс промежутка перед строкой rows[i] (rows.length — в конце).
+function gapAt(y) {
+  const rows = [...app.querySelectorAll(".seq")];
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i].getBoundingClientRect();
+    if (y < r.top + r.height / 2) return { rows, i };
+  }
+  return { rows, i: rows.length };
+}
+
+// Перетаскивание указателем (мышь, тачпад, палец): нажали ⠿ — тянем — отпустили.
+app.addEventListener("pointerdown", (e) => {
+  const h = e.target.closest?.("[data-drag]");
+  if (!h || e.button > 0) return;
+  e.preventDefault();
+  const kind = h.dataset.drag;
+  S.drag = { kind, n: +h.dataset.n, feature: h.dataset.feature, slot: +h.dataset.slot, y0: e.clientY, x0: e.clientX, active: false,
+             row: h.closest(kind === "reward" ? ".reward" : ".seq") };
+  h.setPointerCapture?.(e.pointerId);
+});
+app.addEventListener("pointermove", (e) => {
+  const d = S.drag;
+  if (!d) return;
+  if (!d.active) {
+    if (Math.abs(e.clientY - d.y0) + Math.abs(e.clientX - d.x0) < 5) return;
+    d.active = true;
+    d.row?.classList.add("dragging");
+    document.body.classList.add("dragging-now");
+  }
+  clearDrop();
+  if (d.kind === "reward") {
+    const card = document.elementFromPoint(e.clientX, e.clientY)?.closest(".reward");
+    if (card && +card.dataset.bonus === d.n) card.classList.add("drop");
+    return;
+  }
+  const { rows, i } = gapAt(e.clientY);
+  if (i < rows.length) rows[i].classList.add("drop-before"); else if (rows.length) rows[rows.length - 1].classList.add("drop-after");
+});
+function endDrag(e, cancel) {
+  const d = S.drag;
+  if (!d) return;
+  d.row?.classList.remove("dragging");
+  document.body.classList.remove("dragging-now");
+  if (!d.active || cancel) { S.drag = null; clearDrop(); return; }
+  const target = document.elementFromPoint(e.clientX, e.clientY) || app;
+  dropAt(d, target, e.clientY);
+}
+app.addEventListener("pointerup", (e) => endDrag(e, false));
+app.addEventListener("pointercancel", (e) => endDrag(e, true));
+
+// Отпустили перетаскиваемое в точке y (над элементом target).
+function dropAt(d, target, y) {
+  S.drag = null;
+  clearDrop();
+  if (d.kind === "reward") {
+    const card = target.closest(".reward");
+    if (!card || +card.dataset.bonus !== d.n) return;
+    const b = bonusAt(d.n);
+    const to = Math.min(+card.dataset.slot, b.rewards.length - 1);
+    if (to === d.slot) return;
+    editProg(() => { const [r] = b.rewards.splice(d.slot, 1); b.rewards.splice(to, 0, r); });
+    return;
+  }
+  const { rows, i } = gapAt(y);
+  const levelsBefore = rows.slice(0, i).filter((r) => r.dataset.seq === "level");
+  const levelsAfter = rows.slice(i).filter((r) => r.dataset.seq === "level");
+  if (d.kind === "level") {
+    const before = levelsBefore.filter((r) => +r.dataset.n !== d.n).length;
+    moveLevel(d.n, before + 1);
+  } else if (d.kind === "unlock") {
+    moveUnlock(d.feature, levelsAfter.length ? +levelsAfter[0].dataset.n : levelCount() + 1);
+  } else if (d.kind === "bonus") {
+    if (!levelsBefore.length) { toast("Бонусный уровень стоит после уровня — перетащите его ниже уровня 1", true); return; }
+    moveBonus(d.n, +levelsBefore[levelsBefore.length - 1].dataset.n);
+  }
+}
+
+// ───────────────────────── правки ─────────────────────────
+function get(obj, path) { return path.split(".").reduce((o, k) => (o == null ? undefined : o[k]), obj); }
+function set(obj, path, value) {
+  const keys = path.split(".");
+  let o = obj;
+  for (let i = 0; i < keys.length - 1; i++) {
+    if (o[keys[i]] == null) o[keys[i]] = /^\d+$/.test(keys[i + 1]) ? [] : {};
+    o = o[keys[i]];
+  }
+  o[keys[keys.length - 1]] = value;
+}
+
+function readValue(el) {
+  const t = el.dataset.type;
+  if (t === "bool") return el.checked;
+  if (t === "int") { const v = parseInt(el.value, 10); return Number.isFinite(v) ? v : 0; }
+  if (t === "float") { const v = parseFloat(String(el.value).replace(",", ".")); return Number.isFinite(v) ? v : 0; }
+  if (t === "words") return el.value.split(/[,;\s]+/).map((w) => w.trim().toUpperCase()).filter(Boolean);
+  return el.value;
+}
+
+function onEdit(e, structural) {
+  const el = e.target.closest("[data-bind]");
+  if (!el) return;
+  const L = S.levels.get(el.dataset.l);
+  if (!L || !L.draft) return;
+  set(L.draft, el.dataset.bind, readValue(el));
+  markDirty(L);
+  if (structural) render();
+  else {
+    updateRow(L);
+    const preview = document.getElementById(`stars-${L.key}`);
+    if (preview) preview.innerHTML = starsPreview(L.draft);
+  }
+}
+
+// Поля развития игры (открытия, награды): числа — без перерисовки, пока печатаешь; списки — с перерисовкой.
+function onProgEdit(el, typing) {
+  const a = el.dataset.action;
+  const b = el.dataset.n ? bonusAt(+el.dataset.n) : null;
+  const slot = +el.dataset.slot;
+  const u = el.dataset.feature ? unlocks().find((x) => x.feature === el.dataset.feature) : null;
+  const num = () => Math.max(1, parseInt(el.value, 10) || 1);
+  switch (a) {
+    case "bonus-picks": b.picks = Math.min(num(), rewardSlots()); break;
+    case "reward-amount": b.rewards[slot].amount = num(); break;
+    case "reward-kind": {
+      const r = b.rewards[slot];
+      r.kind = el.value;
+      r.item = r.kind === "Booster" ? (S.state.rewards?.boosters || [""])[0] : r.kind === "Helper" ? (S.state.rewards?.helpers || [""])[0] : "";
+      r.amount = r.kind === "Coins" ? 100 : r.kind === "InfiniteLives" ? 30 : 1;
+      break;
+    }
+    case "reward-item": b.rewards[slot].item = el.value; break;
+    case "unlock-feature": {
+      const f = featureInfo(el.value);
+      Object.assign(u, { feature: el.value, title: f?.title || el.value, tutorial: f?.tutorial || "None", showOnMap: f?.showOnMap ?? true });
+      break;
+    }
+    case "unlock-tutorial": u.tutorial = el.value; break;
+    default: return false;
+  }
+  markDirty(S.prog);
+  if (!typing) render();
+  return true;
+}
+
+app.addEventListener("input", (e) => {
+  if (e.target.tagName === "SELECT" || e.target.type === "checkbox") return;
+  if (e.target.dataset.action && onProgEdit(e.target, true)) return;
+  onEdit(e, false);
+});
+app.addEventListener("change", (e) => {
+  const el = e.target;
+  if (el.dataset.action === "task-type") {
+    const L = S.levels.get(el.dataset.l);
+    const tasks = L.draft.subLevels[+el.dataset.sub].tasks;
+    const tt = taskType(el.value);
+    tasks[+el.dataset.task] = tt ? { type: tt.type, settings: clone(tt.defaults) } : { type: "" };
+    markDirty(L); render();
+    return;
+  }
+  if (el.dataset.action && el.tagName === "SELECT" && onProgEdit(el, false)) return;
+  if (el.dataset.action === "bonus-picks" || el.dataset.action === "reward-amount") { render(); return; }
+  if (el.dataset.bind) onEdit(e, true);
+});
+
+document.addEventListener("click", (e) => {
+  const el = e.target.closest("[data-action]");
+  if (!el || el.tagName === "SELECT" || el.tagName === "INPUT" || el.disabled) return;
+  if (e.target.closest("input, select, textarea, .handle") && (el.dataset.action === "toggle" || el.dataset.action === "toggle-bonus")) return;
+  const L = el.dataset.l ? (el.dataset.l === "P" ? S.prog : S.levels.get(el.dataset.l)) : null;
+  const n = el.dataset.n ? +el.dataset.n : null;
+  const slot = +el.dataset.slot;
+  const a = el.dataset.action;
+  const b = n != null ? bonusAt(n) : null;
+  switch (a) {
+    case "toggle": S.open.has(L.key) ? S.open.delete(L.key) : S.open.add(L.key); render(); return;
+    case "toggle-bonus": S.open.has("B" + n) ? S.open.delete("B" + n) : S.open.add("B" + n); render(); return;
+    case "filter":
+      S.filter = el.dataset.filter;
+      document.querySelectorAll("#filters button").forEach((x) => x.classList.toggle("on", x === el));
+      render(); return;
+    case "collapse": S.open.clear(); render(); return;
+    case "add-level": insertLevel(levelCount()); return;
+    case "add-bonus": addBonus(); return;
+    case "add-unlock": addUnlock(); return;
+    case "insert-after": insertLevel(n); return;
+    case "level-up": moveLevel(n, n - 1); return;
+    case "level-down": moveLevel(n, n + 1); return;
+    case "move-to": {
+      const to = parseInt(document.getElementById(`moveto-${L.key}`).value, 10);
+      if (Number.isFinite(to)) moveLevel(L.n, Math.min(Math.max(to, 1), levelCount()));
+      return;
+    }
+    case "unlock-up": case "unlock-down": {
+      const u = unlocks().find((x) => x.feature === el.dataset.feature);
+      moveUnlock(u.feature, u.level + (a === "unlock-up" ? -1 : 1));
+      return;
+    }
+    case "unlock-delete": editProg((d) => { d.unlocks = d.unlocks.filter((x) => x.feature !== el.dataset.feature); }); return;
+    case "bonus-up": case "bonus-down": {
+      // Через занятые места — к ближайшему свободному.
+      const step = a === "bonus-up" ? -1 : 1;
+      let to = n + step;
+      while (to >= 1 && to <= levelCount() && bonusAt(to)) to += step;
+      if (to < 1 || to > levelCount()) { toast("Дальше некуда", true); return; }
+      moveBonus(n, to);
+      return;
+    }
+    case "bonus-delete":
+      if (!confirm(`Убрать бонусный уровень после уровня ${n}?`)) return;
+      S.open.delete("B" + n);
+      editProg((d) => { d.bonusLevels = d.bonusLevels.filter((x) => x.afterLevel !== n); });
+      return;
+    case "reward-add": editProg(() => { b.rewards.push({ kind: "Coins", item: "", amount: 100 }); }); return;
+    case "reward-delete": editProg(() => { b.rewards.splice(slot, 1); b.picks = Math.min(b.picks, Math.max(1, b.rewards.length)); }); return;
+    case "reward-left": case "reward-right": {
+      const to = slot + (a === "reward-left" ? -1 : 1);
+      editProg(() => { const [r] = b.rewards.splice(slot, 1); b.rewards.splice(to, 0, r); });
+      return;
+    }
+    case "take-unity":
+      L.draft = clone(L.conflict.data); L.server = L.conflict.data; L.hash = L.conflict.hash;
+      L.conflict = null; L.dirty = false; L.status = "saved"; clearTimeout(L.timer); render(); return;
+    case "overwrite": save(L, true); return;
+    case "gh-pull": ghRun("/api/github/pull"); return;
+    case "gh-push": ghRun("/api/github/push"); return;
+    case "gh-resolve": ghRun("/api/github/resolve", { key: el.dataset.key, choice: el.dataset.choice }); return;
+    case "gh-settings": GH.form = !GH.form; renderGhForm(); return;
+    case "gh-save": ghSaveSettings(); return;
+    case "reload-page": flushSaves().finally(() => location.reload()); return;
+  }
+  if (!L || !L.draft || L.kind !== "level") return;
+  const d = L.draft;
+  const si = +el.dataset.sub, ti = +el.dataset.task;
+  switch (a) {
+    case "set-hard": d.hard = el.dataset.value === "1"; break;
+    case "add-sub": d.subLevels.push({ id: "", order: "Together", tasks: [] }); break;
+    case "del-sub":
+      if (!confirm(`Удалить подуровень ${si + 1}? В префабе он удалится вместе с цепью и доской (Unity спросит ещё раз).`)) return;
+      d.subLevels.splice(si, 1); break;
+    case "add-task": {
+      const first = (S.state.taskTypes || [])[0];
+      d.subLevels[si].tasks.push(first ? { type: first.type, settings: clone(first.defaults) } : { type: "" });
+      break;
+    }
+    case "del-task": d.subLevels[si].tasks.splice(ti, 1); break;
+    case "unlink-asset": {
+      const t = d.subLevels[si].tasks[ti];
+      const tasks = d.subLevels[si].tasks;
+      tasks.splice(ti, 1);
+      // Задания уровня идут раньше заданий-ассетов — новое встаёт после последнего задания уровня.
+      const at = tasks.findIndex((x) => x.asset !== undefined);
+      tasks.splice(at < 0 ? tasks.length : at, 0, { type: t.type, settings: clone(t.settings || taskType(t.type)?.defaults || {}) });
+      break;
+    }
+    default: return;
+  }
+  markDirty(L); render();
+});
+
+// ───────────────────────── GitHub (LevelEditorSync_Plan.md §5–6) ─────────────────────────
+// С Unity: получает и отправляет Unity, страница показывает состояние, запускает и решает конфликты.
+// Без Unity (телефон): то же самое делает Local ниже, прямо с GitHub.
+const GH = { status: null, running: false, form: false };
+const ghEl = document.getElementById("gh");
+ghEl.innerHTML = `<div id="gh-main" style="display:grid;gap:8px"></div><div id="gh-form"></div>`;
+const ghMain = document.getElementById("gh-main");
+const ghForm = document.getElementById("gh-form");
+
+function renderGitHub() {
+  const s = GH.status;
+  if (!s) { ghEl.hidden = true; return; }
+  ghEl.hidden = false;
+  const settingsBtn = s.standalone ? `<button data-action="gh-settings">Настройки</button>` : "";
+  if (!s.configured) {
+    ghMain.innerHTML = s.standalone
+      ? `<div class="gh-bar"><b>GitHub</b><span class="muted">не настроен — нужен токен</span><span class="spacer"></span>${settingsBtn}</div>`
+      : `<div class="gh-bar"><span class="muted">GitHub не настроен — в Unity: Tools → Levels → GitHub → Настройки и конфликты</span></div>`;
+    if (s.standalone && !GH.form) { GH.form = true; renderGhForm(); }
+    return;
+  }
+  const pending = s.pending || [];
+  const conflicts = s.conflicts || [];
+  const busy = s.busy || GH.running;
+  let html = `<div class="gh-bar"><b>GitHub</b><a href="${esc(s.repoUrl)}" target="_blank" rel="noopener">${esc(s.repo)}</a>
+    <span class="muted">${s.lastSync ? "синхронизация " + esc(s.lastSync) : "ещё не синхронизировано"}</span>
+    <span class="${pending.length ? "pending" : "muted"}">${pending.length ? "не отправлено: " + pending.length : "всё отправлено"}</span>
+    <span class="spacer"></span>
+    ${busy ? `<span class="state saving">${esc(s.busyText || "синхронизация…")}</span>` : ""}
+    ${settingsBtn}
+    <button data-action="gh-pull" ${busy ? "disabled" : ""}>Получить</button>
+    <button class="primary" data-action="gh-push" ${busy || conflicts.length ? "disabled" : ""} title="${conflicts.length ? "Сначала разберите конфликты" : "Все правки — одним коммитом"}">Отправить</button>`;
+  if (pending.length) html += `<details><summary>что не отправлено</summary>${pending.map(esc).join(" · ")}</details>`;
+  if (s.standalone && s.hasSchema === false) html += `<div class="banner" style="width:100%;margin:0">Нет справочников (типы заданий, способности) — нажмите «Получить». Если не помогло — отправьте уровни из Unity.</div>`;
+  if (s.error && !busy) html += `<div class="banner err" style="width:100%;margin:0">${esc(s.error)}</div>`;
+  if (s.statusError) html += `<div class="banner" style="width:100%;margin:0">${esc(s.statusError)}</div>`;
+  html += `</div>`;
+  for (const c of conflicts) {
+    html += `<div class="gh-conflict"><b>Конфликт · ${esc(c.title)}</b> — изменено и здесь, и на GitHub
+      <ul>${(c.diff || []).map((d) => `<li>${esc(d)}</li>`).join("")}</ul>
+      <div class="muted">строки: здесь → на GitHub · пока не решено, здесь своя версия</div>
+      <div class="toolbar"><button class="small" data-action="gh-resolve" data-key="${esc(c.key)}" data-choice="remote" ${busy ? "disabled" : ""}>Взять с GitHub</button>
+      <button class="small" data-action="gh-resolve" data-key="${esc(c.key)}" data-choice="local" ${busy ? "disabled" : ""}>${c.localDeleted ? "Оставить удалённым" : "Оставить мои"}</button></div></div>`;
+  }
+  ghMain.innerHTML = html;
+}
+
+// Настройки телефона: рисуются только по кнопке (опрос состояния их не перерисовывает — не стирает ввод).
+function renderGhForm() {
+  const s = GH.status || {};
+  if (!GH.form) { ghForm.innerHTML = ""; return; }
+  ghForm.innerHTML = `<div class="gh-bar" style="display:grid;gap:8px">
+    <b>Настройки GitHub</b>
+    <label class="f"><span>Владелец</span><input id="gh-owner" value="${esc(s.owner || "")}" autocapitalize="off" autocomplete="off"></label>
+    <label class="f"><span>Репозиторий</span><input id="gh-repo" value="${esc(s.repoName || "")}" autocapitalize="off" autocomplete="off"></label>
+    <label class="f"><span>Ветка</span><input id="gh-branch" value="${esc(s.branch || "main")}" autocapitalize="off" autocomplete="off"></label>
+    <label class="f"><span>Токен<small>Fine-grained: только этот репозиторий, Contents — Read and write</small></span>
+      <input id="gh-token" type="password" autocomplete="off" placeholder="${s.hasToken ? "сохранён — пусто, чтобы оставить" : "github_pat_…"}"></label>
+    <details><summary class="muted">Для проверки</summary><label class="f"><span>Адрес API</span><input id="gh-api" value="${esc(s.apiUrl || "")}" placeholder="https://api.github.com" autocapitalize="off"></label></details>
+    <div class="toolbar" style="margin:0"><button class="primary" data-action="gh-save">Сохранить</button>
+      ${s.configured ? `<button data-action="gh-settings">Закрыть</button>` : ""}
+      <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Как сделать токен</a></div>
+    <div class="muted">Токен хранится только в этом браузере на этом устройстве.</div></div>`;
+}
+
+async function ghSaveSettings() {
+  const v = (id) => document.getElementById(id).value.trim();
+  const body = { owner: v("gh-owner"), repo: v("gh-repo"), branch: v("gh-branch") || "main", apiUrl: v("gh-api") };
+  if (v("gh-token")) body.token = v("gh-token");
+  const r = await api("POST", "/api/github/settings", body);
+  if (!r.ok) { toast(r.body.error || "не сохранено", true); return; }
+  GH.status = r.body;
+  GH.form = !r.body.configured;
+  renderGhForm(); renderGitHub();
+  if (r.body.configured) ghRun("/api/github/pull");
+}
+
+async function ghStatus() {
+  try {
+    const r = await api("GET", "/api/github/status");
+    if (r.ok) GH.status = r.body;
+  } catch { /* Unity не отвечает — полоса как была */ }
+  renderGitHub();
+  return GH.status;
+}
+
+async function ghPoll() {
+  if (!GH.running) await ghStatus();
+  setTimeout(ghPoll, 4000);
+}
+
+// Запустить и ждать конца: Unity (или Local) переписывает файлы — страница потом читает всё заново.
+async function ghRun(url, body) {
+  if (GH.running || S.busyOp) return;
+  if (!(await flushSaves())) { toast("Сначала разберите конфликт или ошибку сохранения", true); return; }
+  GH.running = true; S.busyOp = true;
+  if (GH.status) GH.status.busyText = url.endsWith("push") ? "Отправляю на GitHub…" : url.endsWith("pull") ? "Получаю с GitHub…" : "…";
+  renderGitHub();
+  try {
+    const r = await api("POST", url, body || {});
+    if (!r.ok) { toast(r.body.error || `ошибка ${r.status}`, true); return; }
+    GH.status = r.body;
+    while (GH.status?.busy) {
+      renderGitHub();
+      await new Promise((res) => setTimeout(res, 1000));
+      await ghStatus();
+    }
+    const s = GH.status || {};
+    if (s.error) toast(s.error, true);
+    else if (s.message) toast(s.message);
+  } catch { toast(STANDALONE ? "Ошибка синхронизации" : "Нет связи с Unity", true); if (!STANDALONE) setOnline(false); }
+  finally {
+    GH.running = false; S.busyOp = false;
+    await loadState().catch(() => {});
+    renderGitHub();
+  }
+}
+
+// ───────────────────────── без Unity: синхронизация (порт LevelSyncCore.cs, LevelEditorSync_Plan.md §5–6) ─────────────────────────
+class SyncError extends Error { constructor(status, message) { super(message); this.status = status; } }
+
+const Sync = {
+  LEVEL: /^Level_(\d+)\.json$/i,
+  PROG: "Progression.json",
+  // Номер и то, что выводит Unity (пути ассета и префаба меняются при перестановке, звёзды — из очков), — не правка.
+  DERIVED: ["level", "prefab", "config", "stars"],
+  LABELS: {
+    steps: "Ходов", coins: "Монет за победу", threeStarScore: "Очки на 3 звезды", stars: "Звёзды", startObjects: "Объектов на старте",
+    stones: "Из них камней", maxObjects: "Лимит объектов", wordTier: "Сложность", wordDifficulty: "Сложность слов",
+    startWords: "Стартовые слова", tutorial: "Обучение", tutorialWord: "Слово обучения", hard: "Сложный", order: "Порядок заданий",
+    subLevels: "подуровень", tasks: "задание", settings: "", _points: "Очки", _text: "Текст", _letter: "Буква", _times: "Сколько раз",
+    _letters: "Букв в слове", _words: "Сколько слов", _stones: "Сколько камней", type: "Тип", unlocks: "открытие",
+    bonusLevels: "бонусный уровень", rewards: "награда", level: "С уровня", afterLevel: "После уровня", picks: "Берёт наград",
+    amount: "Сколько", kind: "Вид", item: "Что", feature: "Способность", title: "Название", showOnMap: "На карте",
+  },
+
+  num(name) { const m = Sync.LEVEL.exec(name || ""); return m ? +m[1] : 0; },
+  fileName(n) { return `Level_${String(n).padStart(2, "0")}.json`; },
+  toText(o) { return JSON.stringify(o, null, 2) + "\n"; },
+  isProg(name) { return (name || "").toLowerCase() === "progression.json"; },
+  newId() {
+    if (crypto.randomUUID) return crypto.randomUUID().replace(/-/g, "");
+    return Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
+  },
+  async sha1(bytes) {
+    const h = await crypto.subtle.digest("SHA-1", bytes);
+    return Array.from(new Uint8Array(h), (b) => b.toString(16).padStart(2, "0")).join("");
+  },
+  // SHA файла в git — как в дереве GitHub.
+  async blobSha(text) {
+    const body = new TextEncoder().encode(text);
+    const head = new TextEncoder().encode(`blob ${body.length}\0`);
+    const all = new Uint8Array(head.length + body.length);
+    all.set(head); all.set(body, head.length);
+    return Sync.sha1(all);
+  },
+  canon(v) {
+    if (v === null || v === undefined) return "null";
+    if (Array.isArray(v)) return "[" + v.map(Sync.canon).join(",") + "]";
+    if (typeof v === "object") return "{" + Object.keys(v).sort().map((k) => JSON.stringify(k) + ":" + Sync.canon(v[k])).join(",") + "}";
+    return JSON.stringify(v);
+  },
+  async contentHash(o) {
+    const c = { ...o };
+    for (const k of Sync.DERIVED) delete c[k];
+    return Sync.sha1(new TextEncoder().encode(Sync.canon(c)));
+  },
+
+  // Папка «имя → текст» → уровни по ID, порядок, Progression.json.
+  async read(files) {
+    const f = { byId: new Map(), order: [], prog: null, progHash: null };
+    for (const name of Object.keys(files).sort((a, b) => Sync.num(a) - Sync.num(b))) {
+      if (Sync.isProg(name)) { f.prog = JSON.parse(files[name]); f.progHash = await Sync.contentHash(f.prog); continue; }
+      const n = Sync.num(name);
+      if (n <= 0) continue;
+      const json = JSON.parse(files[name]);
+      if (!json.id) throw new Error(`${name}: нет "id"`);
+      if (f.byId.has(json.id)) throw new Error(`${name}: такой же "id", как у другого файла`);
+      f.byId.set(json.id, { id: json.id, number: n, hash: await Sync.contentHash(json), json });
+      f.order.push(json.id);
+    }
+    return f;
+  },
+
+  async localChanges(base, files) {
+    const local = await Sync.read(files);
+    const changes = [];
+    for (const id of local.order) {
+      const l = local.byId.get(id);
+      if (!(id in base.levels)) changes.push(`уровень ${l.number} (новый)`);
+      else if (base.levels[id] !== l.hash) changes.push(`уровень ${l.number}`);
+    }
+    const deleted = Object.keys(base.levels).filter((id) => !local.byId.has(id)).length;
+    if (deleted) changes.push(`удалено уровней: ${deleted}`);
+    const inBase = new Set(base.order);
+    const a = local.order.filter((id) => inBase.has(id)), b = base.order.filter((id) => local.byId.has(id));
+    if (a.join() !== b.join()) changes.push("порядок уровней");
+    if (local.progHash && local.progHash !== base.progression) changes.push("открытия и бонусные уровни");
+    return changes;
+  },
+
+  async readRemote(api, base, tree, messages) {
+    const f = { byId: new Map(), order: [], prog: null, progHash: null };
+    const levels = [];
+    for (const e of tree) {
+      if (e.type !== "blob" || !e.path.startsWith("data/")) continue;
+      const name = e.path.slice(5);
+      if (name === Sync.PROG) { f.prog = JSON.parse(await api.blob(e.sha)); f.progHash = await Sync.contentHash(f.prog); continue; }
+      const n = Sync.num(name);
+      if (n <= 0) continue;
+      const L = { number: n, sha: e.sha, json: null };
+      const known = base.blobs[e.sha];
+      if (known && known.id) { L.id = known.id; L.hash = known.hash; }
+      else { L.json = JSON.parse(await api.blob(e.sha)); L.id = L.json.id; L.hash = await Sync.contentHash(L.json); }
+      levels.push(L);
+    }
+    levels.sort((a, b) => a.number - b.number);
+    for (const L of levels) {
+      if (!L.id || f.byId.has(L.id)) {
+        await Sync.ensureJson(api, L);
+        L.id = Sync.newId(); L.json.id = L.id; L.hash = await Sync.contentHash(L.json); L.sha = null;
+        messages.push(`на GitHub у ${Sync.fileName(L.number)} не было своего ID — он новый уровень`);
+      }
+      f.byId.set(L.id, L); f.order.push(L.id);
+    }
+    return f;
+  },
+
+  async ensureJson(api, L) { if (!L.json) L.json = JSON.parse(await api.blob(L.sha)); },
+
+  // §5.2: изменено только там — взять; только здесь — оставить; по-разному с двух сторон — конфликт.
+  async pull(api, base, files) {
+    const head = await api.head();
+    if (head === base.commit) return { upToDate: true, base, taken: [], messages: [] };
+    const local = await Sync.read(files);
+    const tree = await api.tree(await api.commitTree(head));
+    const messages = [], taken = [];
+    const remote = await Sync.readRemote(api, base, tree, messages);
+    const nb = clone(base);
+    nb.commit = head; nb.conflicts = []; nb.blobs = {};
+    for (const r of remote.byId.values()) if (r.sha) nb.blobs[r.sha] = { id: r.id, hash: r.hash };
+
+    const final = new Map();
+    const ids = [...local.order, ...remote.order.filter((id) => !local.byId.has(id))];
+    for (const id of Object.keys(base.levels)) if (!ids.includes(id)) ids.push(id);
+    for (const id of ids) {
+      const b = id in base.levels ? base.levels[id] : null;
+      const l = local.byId.get(id), r = remote.byId.get(id);
+      const lh = l ? l.hash : null, rh = r ? r.hash : null;
+      if (rh === b) { if (l) final.set(id, l.json); continue; }
+      if (!r) {
+        if (l) { final.set(id, l.json); messages.push(`уровень ${l.number} удалён на GitHub — здесь остался (удалить можно в Unity)`); }
+        delete nb.levels[id];
+        continue;
+      }
+      await Sync.ensureJson(api, r);
+      if (lh === b) { final.set(id, r.json); nb.levels[id] = rh; taken.push(b == null ? `уровень ${r.number} (новый)` : `уровень ${r.number}`); continue; }
+      if (lh === rh) { final.set(id, l.json); nb.levels[id] = rh; continue; }
+      nb.conflicts.push({ key: id, title: `Уровень ${l ? l.number : r.number}`, remoteHash: rh, remote: r.json, remoteNumber: r.number,
+        localDeleted: !l, diff: l ? Sync.diff(l.json, r.json) : ["здесь удалён, на GitHub изменён"] });
+      if (l) final.set(id, l.json);
+    }
+
+    let prog = local.prog;
+    const pb = base.progression ?? null, plh = local.progHash, prh = remote.progHash;
+    if (prh && prh !== pb) {
+      if (plh === pb || !plh) { prog = remote.prog; nb.progression = prh; taken.push("открытия и бонусные уровни"); }
+      else if (plh === prh) nb.progression = prh;
+      else nb.conflicts.push({ key: "progression", title: "Открытия и бонусные уровни", remoteHash: prh, remote: remote.prog,
+        diff: Sync.diff(local.prog, remote.prog) });
+    }
+
+    const merged = Sync.mergeOrder(base.order, local.order, remote.order, final);
+    if (merged.conflict) {
+      nb.order = base.order;
+      nb.conflicts.push({ key: "order", title: "Порядок уровней", remoteOrder: remote.order, diff: Sync.orderDiff(local, remote) });
+    } else {
+      nb.order = remote.order;
+      const mine = merged.order.filter((id) => local.byId.has(id)).join(), was = local.order.filter((id) => final.has(id)).join();
+      if (mine !== was) taken.push("порядок уровней");
+    }
+
+    // Справочники (типы заданий, способности) — их выгружает Unity.
+    let schema = null;
+    const se = tree.find((e) => e.type === "blob" && e.path === "data/schema.json");
+    if (se && se.sha !== base.schemaSha) { schema = JSON.parse(await api.blob(se.sha)); nb.schemaSha = se.sha; }
+
+    return { upToDate: false, files: Sync.build(merged.order, final, prog), base: nb, taken, messages, schema };
+  },
+
+  // Общие уровни — в порядке той стороны, что его меняла; новые — после своего соседа сверху.
+  mergeOrder(baseOrder, localOrder, remoteOrder, final) {
+    const inB = new Set(baseOrder), inL = new Set(localOrder), inR = new Set(remoteOrder);
+    const common = (id) => inB.has(id) && inL.has(id) && inR.has(id) && final.has(id);
+    const b = baseOrder.filter(common).join(), l = localOrder.filter(common), r = remoteOrder.filter(common);
+    let order, conflict = false;
+    if (l.join() === r.join() || r.join() === b) order = l;
+    else if (l.join() === b) order = r;
+    else { order = l; conflict = true; }
+    order = [...order];
+    Sync.place(order, localOrder, final);
+    Sync.place(order, remoteOrder, final);
+    for (const id of final.keys()) if (!order.includes(id)) order.push(id);
+    return { order, conflict };
+  },
+
+  place(order, source, wanted) {
+    source.forEach((id, i) => {
+      if (!wanted.has(id) || order.includes(id)) return;
+      let at = 0;
+      for (let j = i - 1; j >= 0; j--) { const k = order.indexOf(source[j]); if (k >= 0) { at = k + 1; break; } }
+      order.splice(at, 0, id);
+    });
+  },
+
+  orderDiff(local, remote) {
+    const lines = [];
+    for (const id of local.order) {
+      const r = remote.byId.get(id);
+      if (r && r.number !== local.byId.get(id).number) lines.push(`уровень ${local.byId.get(id).number} здесь — ${r.number} на GitHub`);
+    }
+    return Sync.cut(lines);
+  },
+
+  build(order, levels, prog) {
+    const files = {};
+    order.forEach((id, i) => {
+      const json = clone(levels.get(id));
+      files[Sync.fileName(i + 1)] = Sync.toText("level" in json ? Object.assign(json, { level: i + 1 }) : { level: i + 1, ...json });
+    });
+    if (prog) files[Sync.PROG] = Sync.toText(prog);
+    return files;
+  },
+
+  // §5.3 на телефоне: что отправлять, решает база (содержимое и место уровня), а не текст файла — запись чисел
+  // у Unity и браузера разная (0.0 / 0), из-за неё файлы не гоняются туда-сюда.
+  async push(api, base, files) {
+    if (base.conflicts.length) throw new Error("Сначала разберите конфликты — что оставить, здесь или на GitHub");
+    const head = await api.head();
+    if (head !== base.commit) return { needPull: true };
+    const local = await Sync.read(files);
+    const treeSha = await api.commitTree(head);
+    const tree = await api.tree(treeSha);
+    const remote = new Map(tree.filter((e) => e.type === "blob" && e.path.startsWith("data/")).map((e) => [e.path, e.sha]));
+    const entries = [], sent = new Set();
+    local.order.forEach((id, i) => {
+      const l = local.byId.get(id), path = "data/" + Sync.fileName(i + 1);
+      if (base.order[i] === id && base.levels[id] === l.hash && remote.has(path)) return;
+      entries.push({ path, mode: "100644", type: "blob", content: files[Sync.fileName(l.number)] });
+      sent.add(id);
+    });
+    for (const path of remote.keys()) if (Sync.num(path.slice(5)) > local.order.length) entries.push({ path, mode: "100644", type: "blob", sha: null });
+    if (local.prog && local.progHash !== base.progression) entries.push({ path: "data/" + Sync.PROG, mode: "100644", type: "blob", content: files[Sync.PROG] });
+
+    let commit = head, message = null;
+    if (entries.length) {
+      message = Sync.commitMessage("Телефон", base, local);
+      const newTree = await api.createTree(treeSha, entries);
+      commit = await api.createCommit(message, newTree, head);
+      if (!(await api.moveBranch(commit))) return { needPull: true };
+    }
+    const nb = clone(base);
+    nb.commit = commit; nb.conflicts = [];
+    nb.levels = {}; nb.blobs = {};
+    for (const [i, id] of local.order.entries()) {
+      const l = local.byId.get(id);
+      nb.levels[id] = l.hash;
+      const sha = sent.has(id) ? await Sync.blobSha(files[Sync.fileName(l.number)]) : remote.get("data/" + Sync.fileName(i + 1));
+      if (sha) nb.blobs[sha] = { id, hash: l.hash };
+    }
+    nb.order = [...local.order];
+    nb.progression = local.progHash;
+    return { needPull: false, nothing: !entries.length, message, base: nb };
+  },
+
+  commitMessage(author, base, local) {
+    const levels = [];
+    for (const id of local.order) {
+      const l = local.byId.get(id);
+      if (!(id in base.levels)) levels.push(`${l.number} (новый)`);
+      else if (base.levels[id] !== l.hash) levels.push(String(l.number));
+    }
+    const parts = [];
+    if (levels.length) parts.push((levels.length === 1 ? "уровень " : "уровни ") + levels.join(", "));
+    const inBase = new Set(base.order);
+    if (local.order.filter((id) => inBase.has(id)).join() !== base.order.filter((id) => local.byId.has(id)).join()) parts.push("порядок уровней");
+    if (local.progHash && local.progHash !== base.progression) parts.push("открытия и бонусные уровни");
+    return `${author}: ${parts.length ? parts.join("; ") : "файлы"}`;
+  },
+
+  // Конфликт без сети: remote — версия GitHub сюда; local — своё уйдёт при «Отправить». Возвращает файлы или null.
+  async resolve(base, files, key, choice) {
+    const c = base.conflicts.find((x) => x.key === key);
+    if (!c) throw new Error("Такого конфликта уже нет");
+    const remote = choice === "remote";
+    base.conflicts = base.conflicts.filter((x) => x !== c);
+    const local = await Sync.read(files);
+    const levels = new Map([...local.byId].map(([id, l]) => [id, l.json]));
+    let order = [...local.order], prog = local.prog;
+    if (key === "order") {
+      base.order = c.remoteOrder || [];
+      if (!remote) return null;
+      const inLocal = new Set(order);
+      const merged = base.order.filter((id) => inLocal.has(id));
+      Sync.place(merged, order, levels);
+      order = merged;
+    } else if (key === "progression") {
+      base.progression = c.remoteHash;
+      if (!remote) return null;
+      prog = c.remote;
+    } else {
+      if (c.remoteHash) base.levels[key] = c.remoteHash; else delete base.levels[key];
+      if (!remote || !c.remote) return null;
+      levels.set(key, c.remote);
+      if (!order.includes(key)) order.splice(Math.max(0, Math.min((c.remoteNumber || 1) - 1, order.length)), 0, key);
+    }
+    return Sync.build(order, levels, prog);
+  },
+
+  // Различия по полям «поле: здесь → GitHub».
+  diff(mine, theirs) {
+    const a = clone(mine || {}), b = clone(theirs || {});
+    for (const k of [...Sync.DERIVED, "id"]) { delete a[k]; delete b[k]; }
+    const lines = [];
+    Sync.diffTok("", a, b, lines);
+    return Sync.cut(lines);
+  },
+  diffTok(path, a, b, lines) {
+    const obj = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+    if (obj(a) && obj(b)) {
+      for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) {
+        const label = k in Sync.LABELS ? Sync.LABELS[k] : k;
+        Sync.diffTok(!label ? path : path ? `${path} · ${label}` : label, a[k], b[k], lines);
+      }
+      return;
+    }
+    if (Array.isArray(a) && Array.isArray(b) && (a.some(obj) || b.some(obj))) {
+      for (let i = 0; i < Math.max(a.length, b.length); i++) Sync.diffTok(`${path} ${i + 1}`, a[i], b[i], lines);
+      return;
+    }
+    const va = Sync.show(a), vb = Sync.show(b);
+    if (va !== vb) lines.push(`${path || "значение"}: ${va} → ${vb}`);
+  },
+  show(v) {
+    if (v === undefined) return "нет";
+    if (v !== null && typeof v === "object" && !Array.isArray(v)) return "есть";
+    let t;
+    if (Array.isArray(v) && v.every((x) => x === null || typeof x !== "object")) t = v.map((x) => (typeof x === "string" ? x : Sync.canon(x))).join(", ");
+    else if (typeof v === "string") t = `«${v}»`;
+    else t = Sync.canon(v);
+    return t.length > 60 ? t.slice(0, 57) + "…" : t;
+  },
+  cut(lines) { return lines.length <= 12 ? lines : [...lines.slice(0, 12), `и ещё ${lines.length - 12}`]; },
+};
+
+// GitHub Git Data API из браузера (api.github.com разрешает CORS).
+class GitHubApi {
+  constructor(s) { this.s = s; }
+  async send(method, path, body) {
+    const base = (this.s.apiUrl || "https://api.github.com").replace(/\/$/, "");
+    const url = `${base}/repos/${encodeURIComponent(this.s.owner)}/${encodeURIComponent(this.s.repo)}${path}`;
+    const headers = { Accept: "application/vnd.github+json", Authorization: `Bearer ${this.s.token}` };
+    if (body) headers["Content-Type"] = "application/json";
+    let r;
+    try { r = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined, cache: "no-store" }); }
+    catch { throw new SyncError(0, "Нет связи с GitHub — проверьте интернет"); }
+    let json = {};
+    try { json = await r.json(); } catch { /* пустой ответ */ }
+    if (!r.ok) throw new SyncError(r.status, this.explain(r.status, json.message));
+    return json;
+  }
+  explain(status, message) {
+    const repo = `${this.s.owner}/${this.s.repo}`;
+    if (status === 401) return "GitHub не принял токен (401) — токен неверный или истёк";
+    if (status === 403) return `Нет прав (403): токену нужен доступ к ${repo}, Contents — Read and write${message ? ` (${message})` : ""}`;
+    if (status === 404) return `Не найдено (404): репозиторий ${repo} или ветка «${this.s.branch}» — или у токена нет к ним доступа`;
+    if (status === 409) return `Репозиторий ${repo} пустой — создайте его с README`;
+    return `GitHub ответил ${status}${message ? ": " + message : ""}`;
+  }
+  get branch() { return this.s.branch.split("/").map(encodeURIComponent).join("/"); }
+  async head() { return (await this.send("GET", `/git/ref/heads/${this.branch}`)).object.sha; }
+  async commitTree(sha) { return (await this.send("GET", `/git/commits/${sha}`)).tree.sha; }
+  async tree(sha) {
+    const j = await this.send("GET", `/git/trees/${sha}?recursive=1`);
+    if (j.truncated) throw new SyncError(0, "GitHub отдал дерево не целиком");
+    return j.tree || [];
+  }
+  async blob(sha) {
+    const j = await this.send("GET", `/git/blobs/${sha}`);
+    if (j.encoding !== "base64") return j.content;
+    const bin = atob((j.content || "").replace(/\s/g, ""));
+    return new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
+  }
+  async createTree(baseTree, tree) { return (await this.send("POST", "/git/trees", { base_tree: baseTree, tree })).sha; }
+  async createCommit(message, tree, parent) { return (await this.send("POST", "/git/commits", { message, tree, parents: [parent] })).sha; }
+  async moveBranch(sha) {
+    try { await this.send("PATCH", `/git/refs/heads/${this.branch}`, { sha, force: false }); return true; }
+    catch (e) { if (e.status === 422 || e.status === 409) return false; throw e; }
+  }
+}
+
+// ───────────────────────── без Unity: хранилище (IndexedDB) ─────────────────────────
+const Store = {
+  db: null, mem: {},
+  async open() {
+    try {
+      this.db = await new Promise((res, rej) => {
+        const r = indexedDB.open("level-editor", 1);
+        r.onupgradeneeded = () => r.result.createObjectStore("kv");
+        r.onsuccess = () => res(r.result);
+        r.onerror = () => rej(r.error);
+      });
+    } catch { this.db = null; }
+    for (const k of ["files", "base", "settings", "schema"]) this.mem[k] = await this.read(k);
+    // Браузер не стирает данные сам, если попросить (важно для iPhone).
+    try { await navigator.storage?.persist?.(); } catch { /* нет — ничего */ }
+  },
+  read(k) {
+    if (!this.db) return Promise.resolve(undefined);
+    return new Promise((res) => {
+      const q = this.db.transaction("kv").objectStore("kv").get(k);
+      q.onsuccess = () => res(q.result);
+      q.onerror = () => res(undefined);
+    });
+  },
+  get(k) { return this.mem[k]; },
+  async set(k, v) {
+    this.mem[k] = v;
+    if (!this.db) return;
+    await new Promise((res, rej) => {
+      const tx = this.db.transaction("kv", "readwrite");
+      tx.objectStore("kv").put(v, k);
+      tx.oncomplete = res;
+      tx.onerror = () => rej(tx.error);
+    });
+  },
+};
+
+// Проверки уровня, которым не нужен Unity (как LevelConfig.Validate без словаря).
+function levelIssues(d) {
+  const e = [];
+  const subs = d.subLevels || [];
+  if (!subs.length) e.push("нет подуровней");
+  subs.forEach((s, i) => {
+    if (!(s.tasks || []).length) e.push(`подуровень ${i + 1}: нет заданий`);
+    else if (s.tasks.some((t) => !t.type)) e.push(`подуровень ${i + 1}: у задания в списке не выбран тип`);
+  });
+  const start = d.startObjects | 0, stones = d.stones | 0, max = d.maxObjects | 0;
+  if (stones >= start) e.push(`камней ${stones} при ${start} объектах на старте — шаров на старте не будет`);
+  if (max > 0 && stones >= max) e.push(`камней ${stones} при лимите объектов ${max} — шаров на старте не будет`);
+  else if (max > 0 && start > max) e.push(`на старте ${start} объектов при лимите ${max} — стартовый бросок урежется до лимита (шаров меньше)`);
+  const seen = new Set();
+  let letters = 0;
+  for (const raw of d.startWords || []) {
+    const w = String(raw || "").trim().toUpperCase();
+    if (w.length < 2) continue;
+    if (seen.has(w)) e.push(`стартовое слово «${String(raw).trim()}» повторяется`);
+    else { seen.add(w); letters += w.replace(/[^A-Z*]/g, "").length; }
+  }
+  const balls = Math.max(0, start - stones);
+  const throwBalls = max > 0 ? Math.min(balls, Math.max(0, max - stones)) : balls;
+  const plural = (n) => (n % 10 === 1 && n % 100 !== 11 ? "буква" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "буквы" : "букв");
+  if (letters > throwBalls) e.push(`стартовые слова — ${letters} ${plural(letters)}, а шаров в стартовом броске ${throwBalls}: не все буквы будут на сцене сразу`);
+  return e;
+}
+
+// ───────────────────────── без Unity: адреса /api/... внутри страницы ─────────────────────────
+// Те же ответы, что у сервера Unity (LevelEditorServer.cs): страница не знает, с кем говорит.
+const Local = {
+  files: {},                 // имя → { text, hash }
+  queue: Promise.resolve(),  // правки и синхронизация — по одной
+  last: { message: null, error: null },
+
+  async init() {
+    await Store.open();
+    this.files = Store.get("files") || {};
+  },
+  texts() { const o = {}; for (const [k, v] of Object.entries(this.files)) o[k] = v.text; return o; },
+  async write(name, text) { this.files[name] = { text, hash: await Sync.blobSha(text) }; },
+  persist() { return Store.set("files", this.files); },
+  levelNames() { return Object.keys(this.files).filter((n) => Sync.num(n) > 0).sort((a, b) => Sync.num(a) - Sync.num(b)); },
+
+  settings() {
+    const s = Store.get("settings") || {};
+    // На GitHub Pages адрес сам говорит, чей репозиторий: владелец.github.io/репозиторий/.
+    const pages = /^([^.]+)\.github\.io$/i.exec(location.hostname);
+    const repoGuess = pages ? location.pathname.split("/").filter(Boolean)[0] || "" : "";
+    return { owner: s.owner ?? (pages ? pages[1] : ""), repo: s.repo ?? repoGuess, branch: s.branch || "main", token: s.token || "", apiUrl: s.apiUrl || "" };
+  },
+  configured(s) { return !!(s.owner && s.repo && s.branch && s.token); },
+  base() {
+    const s = this.settings();
+    const key = `${s.owner}/${s.repo}@${s.branch}`;
+    const b = Store.get("base");
+    if (b && b.repo === key) return clone(b);
+    return { repo: key, commit: null, levels: {}, order: [], progression: null, blobs: {}, conflicts: [], schemaSha: null };
+  },
+
+  entry(name) {
+    const f = this.files[name];
+    const data = JSON.parse(f.text);
+    return { file: name, level: Sync.num(name), hash: f.hash, data, issues: Sync.num(name) > 0 ? levelIssues(data) : [] };
+  },
+  state() {
+    const schema = Store.get("schema") || {};
+    return {
+      ...schema, project: "Телефон", playing: false, folder: "на этом устройстве", standalone: true,
+      levels: this.levelNames().map((n) => this.entry(n)),
+      progression: this.files[Sync.PROG] ? this.entry(Sync.PROG) : {},
+    };
+  },
+  // Уровни по порядку → файлы Level_01…N (номера заново).
+  async setLevels(datas) {
+    for (const n of this.levelNames()) delete this.files[n];
+    for (let i = 0; i < datas.length; i++) {
+      const d = datas[i];
+      await this.write(Sync.fileName(i + 1), Sync.toText("level" in d ? Object.assign(d, { level: i + 1 }) : { level: i + 1, ...d }));
+    }
+  },
+  async putFile(name, body, check) {
+    const cur = this.files[name]?.hash || null;
+    if ((body.baseHash || null) !== cur) return [409, { error: "conflict", hash: cur, data: cur ? JSON.parse(this.files[name].text) : undefined }];
+    const data = body.data;
+    if (check) { const err = check(data); if (err) return [400, { error: err }]; }
+    await this.write(name, Sync.toText(data));
+    await this.persist();
+    return [200, { ...this.entry(name), messages: [] }];
+  },
+
+  api(method, url, body) {
+    const run = async () => {
+      try {
+        const [status, res] = await this.route(method, url, body || {});
+        return { ok: status >= 200 && status < 300, status, body: res };
+      } catch (e) {
+        return { ok: false, status: e.status || 500, body: { error: e.message } };
+      }
+    };
+    if (method === "GET") return run();
+    const p = this.queue.then(run);
+    this.queue = p.catch(() => {});
+    return p;
+  },
+
+  async route(method, url, body) {
+    if (method === "GET" && url === "/api/state") return [200, this.state()];
+    if (method === "GET" && url === "/api/hashes") {
+      const files = {};
+      for (const [k, v] of Object.entries(this.files)) files[k] = v.hash;
+      return [200, { files }];
+    }
+    if (method === "PUT" && url.startsWith("/api/level/")) {
+      const n = +url.slice("/api/level/".length);
+      if (!body.data?.id) body.data.id = Sync.newId();
+      return this.putFile(Sync.fileName(n), body, (d) => (d.level !== n ? "data.level не совпадает с адресом" : null));
+    }
+    if (method === "PUT" && url === "/api/progression") return this.putFile(Sync.PROG, body);
+    if (method === "POST" && url === "/api/move") {
+      const datas = this.levelNames().map((n) => JSON.parse(this.files[n].text));
+      const { from, to } = body;
+      if (from < 1 || from > datas.length || to < 1 || to > datas.length) return [200, { ...this.state(), result: { error: `нет места: уровней ${datas.length}` } }];
+      datas.splice(to - 1, 0, datas.splice(from - 1, 1)[0]);
+      await this.setLevels(datas);
+      await this.persist();
+      return [200, { ...this.state(), result: { level: to, created: false, messages: [], error: null } }];
+    }
+    if (method === "POST" && url === "/api/insert") {
+      const datas = this.levelNames().map((n) => JSON.parse(this.files[n].text));
+      const after = Math.max(0, Math.min(body.after | 0, datas.length));
+      const src = datas[after - 1] || datas[0];
+      const d = src ? clone(src) : { subLevels: [{ id: "", order: "Together", tasks: [] }] };
+      d.id = Sync.newId(); delete d.config; delete d.prefab;
+      d.hard = false; d.tutorial = "None"; d.tutorialWord = "";
+      for (const s of d.subLevels || []) s.id = "";
+      datas.splice(after, 0, d);
+      await this.setLevels(datas);
+      await this.persist();
+      return [200, { ...this.state(), result: { level: after + 1, created: true, error: null,
+        messages: ["ассет и префаб уровня сделает Unity после «Получить»"] } }];
+    }
+    if (method === "POST" && url === "/api/export-all") return [200, this.state()];
+    if (method === "GET" && url === "/api/github/status") return [200, await this.status()];
+    if (method === "POST" && url === "/api/github/settings") {
+      const old = Store.get("settings") || {};
+      await Store.set("settings", { owner: body.owner, repo: body.repo, branch: body.branch || "main", apiUrl: body.apiUrl || "",
+        token: body.token || old.token || "" });
+      return [200, await this.status()];
+    }
+    if (method === "POST" && url.startsWith("/api/github/")) {
+      this.last = { message: null, error: null };
+      try {
+        if (url === "/api/github/pull") this.last.message = await this.pull();
+        else if (url === "/api/github/push") this.last.message = await this.push(0);
+        else if (url === "/api/github/resolve") this.last.message = await this.resolve(body.key, body.choice);
+        else return [404, { error: "нет такого адреса" }];
+      } catch (e) {
+        this.last.error = e.message;
+      }
+      return [200, await this.status()];
+    }
+    return [404, { error: "нет такого адреса" }];
+  },
+
+  api_() { const s = this.settings(); if (!this.configured(s)) throw new Error("GitHub не настроен — «Настройки»: владелец, репозиторий, токен"); return new GitHubApi(s); },
+
+  async apply(files) {
+    if (!files) return;
+    for (const n of this.levelNames()) if (!(n in files)) delete this.files[n];
+    for (const [n, text] of Object.entries(files)) if (this.files[n]?.text !== text) await this.write(n, text);
+    await this.persist();
+  },
+
+  async pull() {
+    const r = await Sync.pull(this.api_(), this.base(), this.texts());
+    await this.apply(r.files);
+    if (r.schema) await Store.set("schema", r.schema);
+    const parts = [r.upToDate ? "на GitHub нового нет" : r.taken.length ? "взято: " + r.taken.join(", ") : "взять нечего", ...r.messages];
+    if (r.base.conflicts.length) parts.push(`конфликтов: ${r.base.conflicts.length} — решите их выше`);
+    r.base.lastSync = new Date().toLocaleString("ru-RU", { dateStyle: "short", timeStyle: "short" });
+    await Store.set("base", r.base);
+    return "Получено с GitHub: " + parts.join("; ");
+  },
+
+  async push(attempt) {
+    const r = await Sync.push(this.api_(), this.base(), this.texts());
+    if (r.needPull) {
+      if (attempt >= 2) throw new Error("На GitHub всё время появляется новое — повторите позже");
+      const got = await this.pull();
+      if (this.base().conflicts.length) throw new Error(got + ". Отправка остановлена: разберите конфликты и отправьте снова");
+      return this.push(attempt + 1);
+    }
+    r.base.lastSync = new Date().toLocaleString("ru-RU", { dateStyle: "short", timeStyle: "short" });
+    r.base.schemaSha = this.base().schemaSha;
+    await Store.set("base", r.base);
+    return r.nothing ? "Нечего отправлять — на GitHub то же самое" : `Отправлено на GitHub: ${r.message}`;
+  },
+
+  async resolve(key, choice) {
+    const base = this.base();
+    const title = base.conflicts.find((c) => c.key === key)?.title || key;
+    const files = await Sync.resolve(base, this.texts(), key, choice);
+    await this.apply(files);
+    await Store.set("base", base);
+    return choice === "remote" ? `${title}: взята версия GitHub` : `${title}: оставлена своя — уйдёт при «Отправить»`;
+  },
+
+  async status() {
+    const s = this.settings(), base = this.base();
+    const st = {
+      standalone: true, configured: this.configured(s), owner: s.owner, repoName: s.repo, branch: s.branch, apiUrl: s.apiUrl,
+      hasToken: !!s.token, repo: `${s.owner}/${s.repo}`, repoUrl: `https://github.com/${s.owner}/${s.repo}`, busy: false,
+      message: this.last.message, error: this.last.error, synced: !!base.commit, lastSync: base.lastSync || null,
+      commit: base.commit ? base.commit.slice(0, 7) : null, hasSchema: !!Store.get("schema"),
+      conflicts: base.conflicts.map((c) => ({ key: c.key, title: c.title, localDeleted: !!c.localDeleted, diff: c.diff || [] })),
+      pending: [],
+    };
+    try { st.pending = await Sync.localChanges(base, this.texts()); } catch (e) { st.statusError = e.message; }
+    return st;
+  },
+};
+
+// ───────────────────────── старт ─────────────────────────
+// Шапка таблицы прилипает под шапкой страницы — её высота зависит от ширины окна.
+const syncHeader = () => document.documentElement.style.setProperty("--hdr", document.querySelector("header").offsetHeight + "px");
+new ResizeObserver(syncHeader).observe(document.querySelector("header"));
+
+// Без сети страница открывается из кэша service worker'а; вышла новая — он говорит «update», страница предлагает обновить.
+function registerWorker() {
+  if (!STANDALONE || !("serviceWorker" in navigator)) return;
+  navigator.serviceWorker.onmessage = (e) => {
+    if (e.data?.type !== "update" || document.getElementById("update-banner")) return;
+    const el = document.createElement("div");
+    el.id = "update-banner"; el.className = "toast";
+    el.innerHTML = `Доступна новая версия страницы <button class="small primary" data-action="reload-page">Обновить</button>`;
+    document.body.appendChild(el);
+  };
+  navigator.serviceWorker.register("sw.js").catch(() => { /* http не localhost или запрещено — без офлайна */ });
+}
+
+async function start() {
+  if (STANDALONE) {
+    registerWorker();
+    await Local.init();
+    document.title = "Уровни · телефон";
+  }
+  await loadState().catch(() => { setOnline(false); app.innerHTML = '<div class="empty">Нет связи с Unity. Откройте страницу из Unity: Tools → Levels → Open Level Editor.</div>'; });
+  setTimeout(poll, 1500);
+  await ghStatus();
+  setTimeout(ghPoll, 4000);
+  // Телефон: при открытии — свежие данные с GitHub, если здесь нет неотправленного (§5.4).
+  const s = GH.status;
+  if (STANDALONE && s?.configured && navigator.onLine !== false && !(s.pending || []).length && !(s.conflicts || []).length) ghRun("/api/github/pull");
+}
+start();
+</script>
+</body>
+</html>
