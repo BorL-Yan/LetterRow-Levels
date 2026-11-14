@@ -10,12 +10,12 @@
     375,
     500
   ],
-  "startObjects": 15,
+  "startObjects": 30,
   "stones": 0,
   "maxObjects": 0,
   "wordTier": "A1",
   "wordDifficulty": [
-    0.0,
+    0,
     0.1
   ],
   "startWords": [
