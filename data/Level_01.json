@@ -1,0 +1,45 @@
+{
+  "level": 1,
+  "id": "1f8f533a8b3b480f937eff082db22ffa",
+  "hard": false,
+  "steps": 15,
+  "coins": 0,
+  "threeStarScore": 400,
+  "stars": [
+    160,
+    300,
+    400
+  ],
+  "startObjects": 15,
+  "stones": 0,
+  "maxObjects": 0,
+  "wordTier": "A1",
+  "wordDifficulty": [
+    0.0,
+    0.1
+  ],
+  "startWords": [
+    "STAR",
+    "BOOK",
+    "AGE"
+  ],
+  "tutorial": "SelectAndConfirm",
+  "tutorialWord": "game",
+  "subLevels": [
+    {
+      "id": "c3cfb1f662564492bd09bba72861fa5a",
+      "order": "Together",
+      "tasks": [
+        {
+          "type": "ScorePointsTask",
+          "settings": {
+            "_points": 50,
+            "_text": "Score {0} points"
+          }
+        }
+      ]
+    }
+  ],
+  "prefab": "Assets/Prefabs/Game/Levels/Level_01.prefab",
+  "config": "Assets/Resources/Levels/Level_01.asset"
+}

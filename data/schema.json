@@ -1,0 +1,291 @@
+{
+  "taskTypes": [
+    {
+      "type": "DestroyStonesTask",
+      "menu": "Камни/Разрушить камни",
+      "defaults": {
+        "_stones": 3,
+        "_text": "Break {0} stones"
+      },
+      "fields": [
+        {
+          "name": "_stones",
+          "label": "Stones",
+          "kind": "int",
+          "tooltip": "Сколько камней разрушить.",
+          "min": 1.0
+        },
+        {
+          "name": "_text",
+          "label": "Text",
+          "kind": "string",
+          "tooltip": "Текст для игрока: {0} — сколько камней."
+        }
+      ]
+    },
+    {
+      "type": "ExactLengthWordTask",
+      "menu": "Слова/Слово из N букв",
+      "defaults": {
+        "_letters": 5,
+        "_words": 1,
+        "_text": "Make a word of {0} letters"
+      },
+      "fields": [
+        {
+          "name": "_letters",
+          "label": "Letters",
+          "kind": "int",
+          "tooltip": "Сколько букв в слове.",
+          "min": 1.0
+        },
+        {
+          "name": "_words",
+          "label": "Words",
+          "kind": "int",
+          "tooltip": "Сколько таких слов составить.",
+          "min": 1.0
+        },
+        {
+          "name": "_text",
+          "label": "Text",
+          "kind": "string",
+          "tooltip": "Текст для игрока: {0} — длина («5» или «5+»), {1} — сколько слов («Make {1} words of {0} letters»)."
+        }
+      ]
+    },
+    {
+      "type": "MinLengthWordTask",
+      "menu": "Слова/Слово из N+ букв",
+      "defaults": {
+        "_letters": 5,
+        "_words": 1,
+        "_text": "Make a word of {0} letters"
+      },
+      "fields": [
+        {
+          "name": "_letters",
+          "label": "Letters",
+          "kind": "int",
+          "tooltip": "Сколько букв в слове.",
+          "min": 1.0
+        },
+        {
+          "name": "_words",
+          "label": "Words",
+          "kind": "int",
+          "tooltip": "Сколько таких слов составить.",
+          "min": 1.0
+        },
+        {
+          "name": "_text",
+          "label": "Text",
+          "kind": "string",
+          "tooltip": "Текст для игрока: {0} — длина («5» или «5+»), {1} — сколько слов («Make {1} words of {0} letters»)."
+        }
+      ]
+    },
+    {
+      "type": "ScorePointsTask",
+      "menu": "Набрать очки",
+      "defaults": {
+        "_points": 25,
+        "_text": "Score {0} points"
+      },
+      "fields": [
+        {
+          "name": "_points",
+          "label": "Points",
+          "kind": "int",
+          "tooltip": "Сколько очков набрать.",
+          "min": 1.0
+        },
+        {
+          "name": "_text",
+          "label": "Text",
+          "kind": "string",
+          "tooltip": "Текст для игрока на панели заданий, {0} — сколько очков."
+        }
+      ]
+    },
+    {
+      "type": "UseLetterTask",
+      "menu": "Буквы/Использовать букву",
+      "defaults": {
+        "_letter": "A",
+        "_times": 10,
+        "_text": "Use letter {0} {1} times"
+      },
+      "fields": [
+        {
+          "name": "_letter",
+          "label": "Letter",
+          "kind": "string",
+          "tooltip": "Какая буква (первый символ, регистр не важен)."
+        },
+        {
+          "name": "_times",
+          "label": "Times",
+          "kind": "int",
+          "tooltip": "Сколько раз она должна встретиться в принятых словах (все вхождения: BANANA — 3 раза A).",
+          "min": 1.0
+        },
+        {
+          "name": "_text",
+          "label": "Text",
+          "kind": "string",
+          "tooltip": "Текст для игрока: {0} — буква, {1} — сколько раз."
+        }
+      ]
+    }
+  ],
+  "tiers": [
+    "",
+    "A1",
+    "A2",
+    "B1",
+    "B2"
+  ],
+  "tutorials": [
+    "None",
+    "SelectAndConfirm",
+    "LinkSynergy",
+    "BoosterTap",
+    "AddLetters",
+    "Merge",
+    "WildcardBall",
+    "ExclamationBall",
+    "WildcardHelper",
+    "Stars"
+  ],
+  "starShares": [
+    0.4,
+    0.75,
+    1.0
+  ],
+  "orders": [
+    "Together",
+    "InOrder"
+  ],
+  "features": [
+    {
+      "feature": "Merge",
+      "title": "Ball Merge",
+      "tutorial": "Merge",
+      "showOnMap": true,
+      "planLevel": 9
+    },
+    {
+      "feature": "Stars",
+      "title": "Stars",
+      "tutorial": "Stars",
+      "showOnMap": true,
+      "planLevel": 40
+    },
+    {
+      "feature": "LinkSynergy",
+      "title": "Link Synergy",
+      "tutorial": "LinkSynergy",
+      "showOnMap": true,
+      "planLevel": 3
+    },
+    {
+      "feature": "LongWordMultiplier",
+      "title": "Long Word Bonus",
+      "tutorial": "None",
+      "showOnMap": false,
+      "planLevel": 5
+    },
+    {
+      "feature": "BoosterLongestWord",
+      "title": "Long Word Booster",
+      "tutorial": "BoosterTap",
+      "showOnMap": true,
+      "planLevel": 7
+    },
+    {
+      "feature": "BoosterMultiplier",
+      "title": "x2 Booster",
+      "tutorial": "BoosterTap",
+      "showOnMap": true,
+      "planLevel": 12
+    },
+    {
+      "feature": "BoosterBreakAll",
+      "title": "Clear Field Booster",
+      "tutorial": "BoosterTap",
+      "showOnMap": true,
+      "planLevel": 18
+    },
+    {
+      "feature": "HelperAddLetters",
+      "title": "New Letters",
+      "tutorial": "AddLetters",
+      "showOnMap": true,
+      "planLevel": 24
+    },
+    {
+      "feature": "HelperWildcard",
+      "title": "Call Wildcard",
+      "tutorial": "WildcardHelper",
+      "showOnMap": true,
+      "planLevel": 44
+    },
+    {
+      "feature": "WildcardBall",
+      "title": "Wildcard Ball",
+      "tutorial": "WildcardBall",
+      "showOnMap": true,
+      "planLevel": 30
+    },
+    {
+      "feature": "ExclamationBall",
+      "title": "Exclamation Ball",
+      "tutorial": "ExclamationBall",
+      "showOnMap": true,
+      "planLevel": 36
+    },
+    {
+      "feature": "Gems",
+      "title": "Gems",
+      "tutorial": "None",
+      "showOnMap": true,
+      "planLevel": 42
+    },
+    {
+      "feature": "HeroUpgrades",
+      "title": "Hero Upgrades",
+      "tutorial": "None",
+      "showOnMap": true,
+      "planLevel": 44
+    },
+    {
+      "feature": "Shop",
+      "title": "Shop",
+      "tutorial": "None",
+      "showOnMap": true,
+      "planLevel": 44
+    }
+  ],
+  "rewards": {
+    "kinds": [
+      "Coins",
+      "Booster",
+      "Helper",
+      "InfiniteLives"
+    ],
+    "boosters": [
+      "LongestWord",
+      "Multiplier",
+      "BreakAll"
+    ],
+    "helpers": [
+      "AddLetters",
+      "Wildcard"
+    ],
+    "slots": 9,
+    "picks": 3
+  },
+  "starsPerLevel": 3,
+  "levelCount": 35
+}

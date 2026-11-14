@@ -1,0 +1,124 @@
+{
+  "unlocks": [
+    {
+      "feature": "LinkSynergy",
+      "level": 4,
+      "title": "Link Synergy",
+      "tutorial": "LinkSynergy",
+      "showOnMap": true
+    },
+    {
+      "feature": "LongWordMultiplier",
+      "level": 5,
+      "title": "Long Word Bonus",
+      "tutorial": "None",
+      "showOnMap": false
+    },
+    {
+      "feature": "BoosterLongestWord",
+      "level": 7,
+      "title": "Long Word Booster",
+      "tutorial": "BoosterTap",
+      "showOnMap": true
+    },
+    {
+      "feature": "Merge",
+      "level": 9,
+      "title": "Ball Merge",
+      "tutorial": "Merge",
+      "showOnMap": true
+    },
+    {
+      "feature": "BoosterMultiplier",
+      "level": 12,
+      "title": "x2 Booster",
+      "tutorial": "BoosterTap",
+      "showOnMap": true
+    },
+    {
+      "feature": "BoosterBreakAll",
+      "level": 18,
+      "title": "Clear Field Booster",
+      "tutorial": "BoosterTap",
+      "showOnMap": true
+    },
+    {
+      "feature": "HelperAddLetters",
+      "level": 24,
+      "title": "New Letters",
+      "tutorial": "AddLetters",
+      "showOnMap": true
+    },
+    {
+      "feature": "WildcardBall",
+      "level": 30,
+      "title": "Wildcard Ball",
+      "tutorial": "WildcardBall",
+      "showOnMap": true
+    },
+    {
+      "feature": "ExclamationBall",
+      "level": 36,
+      "title": "Exclamation Ball",
+      "tutorial": "ExclamationBall",
+      "showOnMap": true
+    },
+    {
+      "feature": "Stars",
+      "level": 40,
+      "title": "Stars",
+      "tutorial": "Stars",
+      "showOnMap": true
+    },
+    {
+      "feature": "Gems",
+      "level": 42,
+      "title": "Gems",
+      "tutorial": "None",
+      "showOnMap": true
+    },
+    {
+      "feature": "HelperWildcard",
+      "level": 44,
+      "title": "Call Wildcard",
+      "tutorial": "WildcardHelper",
+      "showOnMap": true
+    },
+    {
+      "feature": "HeroUpgrades",
+      "level": 44,
+      "title": "Hero Upgrades",
+      "tutorial": "None",
+      "showOnMap": true
+    },
+    {
+      "feature": "Shop",
+      "level": 44,
+      "title": "Shop",
+      "tutorial": "None",
+      "showOnMap": true
+    }
+  ],
+  "bonusLevels": [
+    {
+      "afterLevel": 5,
+      "picks": 3,
+      "rewards": []
+    },
+    {
+      "afterLevel": 15,
+      "picks": 3,
+      "rewards": []
+    },
+    {
+      "afterLevel": 25,
+      "picks": 3,
+      "rewards": []
+    },
+    {
+      "afterLevel": 34,
+      "picks": 3,
+      "rewards": []
+    }
+  ]
+}
