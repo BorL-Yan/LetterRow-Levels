@@ -4,18 +4,18 @@
   "hard": false,
   "steps": 10,
   "coins": 0,
-  "threeStarScore": 300,
+  "threeStarScore": 150,
   "stars": [
-    120,
-    225,
-    300
+    160,
+    300,
+    400
   ],
   "startObjects": 30,
   "stones": 0,
   "maxObjects": 0,
   "wordTier": "A1",
   "wordDifficulty": [
-    0.0,
+    0,
     0.1
   ],
   "startWords": [],
