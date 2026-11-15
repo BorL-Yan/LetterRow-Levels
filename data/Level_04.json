@@ -15,7 +15,7 @@
   "maxObjects": 0,
   "wordTier": "A1",
   "wordDifficulty": [
-    0.0,
+    0,
     0.1
   ],
   "startWords": [
@@ -43,16 +43,6 @@
           "settings": {
             "_letter": "A",
             "_times": 2,
-            "_text": "Use letter {0} {1} times",
-            "_minOnScene": 0,
-            "_maxOnScene": 0
-          }
-        },
-        {
-          "type": "UseLetterTask",
-          "settings": {
-            "_letter": "A",
-            "_times": 4,
             "_text": "Use letter {0} {1} times",
             "_minOnScene": 0,
             "_maxOnScene": 0
