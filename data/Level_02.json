@@ -2,25 +2,23 @@
   "level": 2,
   "id": "8d99edbf62084b3895766df772bee03b",
   "hard": false,
-  "steps": 15,
+  "steps": 10,
   "coins": 0,
-  "threeStarScore": 500,
+  "threeStarScore": 300,
   "stars": [
     200,
     375,
     500
   ],
-  "startObjects": 15,
+  "startObjects": 30,
   "stones": 0,
   "maxObjects": 0,
   "wordTier": "A1",
   "wordDifficulty": [
-    0.0,
+    0,
     0.1
   ],
-  "startWords": [
-    "Star"
-  ],
+  "startWords": [],
   "tutorial": "None",
   "tutorialWord": "",
   "subLevels": [
@@ -31,7 +29,7 @@
         {
           "type": "ScorePointsTask",
           "settings": {
-            "_points": 300,
+            "_points": 50,
             "_text": "Score {0} points"
           }
         }

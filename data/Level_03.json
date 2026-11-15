@@ -2,9 +2,9 @@
   "level": 3,
   "id": "093d1c21814741cdb999b9ef8078f14b",
   "hard": false,
-  "steps": 15,
+  "steps": 20,
   "coins": 0,
-  "threeStarScore": 500,
+  "threeStarScore": 350,
   "stars": [
     200,
     375,
@@ -31,7 +31,20 @@
         {
           "type": "ScorePointsTask",
           "settings": {
-            "_points": 400,
+            "_points": 60,
+            "_text": "Score {0} points"
+          }
+        }
+      ]
+    },
+    {
+      "id": "",
+      "order": "Together",
+      "tasks": [
+        {
+          "type": "ScorePointsTask",
+          "settings": {
+            "_points": 50,
             "_text": "Score {0} points"
           }
         }
