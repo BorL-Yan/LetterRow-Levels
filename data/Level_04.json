@@ -6,16 +6,16 @@
   "coins": 0,
   "threeStarScore": 350,
   "stars": [
-    200,
-    375,
-    500
+    140,
+    262,
+    350
   ],
   "startObjects": 30,
   "stones": 0,
   "maxObjects": 0,
   "wordTier": "A1",
   "wordDifficulty": [
-    0,
+    0.0,
     0.1
   ],
   "startWords": [
@@ -25,7 +25,7 @@
   "tutorialWord": "",
   "subLevels": [
     {
-      "id": "",
+      "id": "fca9dc10e31543fd8870d384f1916b19",
       "order": "Together",
       "tasks": [
         {
@@ -33,7 +33,9 @@
           "settings": {
             "_letter": "E",
             "_times": 3,
-            "_text": "Use letter {0} {1} times"
+            "_text": "Use letter {0} {1} times",
+            "_minOnScene": 0,
+            "_maxOnScene": 0
           }
         },
         {
@@ -41,10 +43,24 @@
           "settings": {
             "_letter": "A",
             "_times": 2,
-            "_text": "Use letter {0} {1} times"
+            "_text": "Use letter {0} {1} times",
+            "_minOnScene": 0,
+            "_maxOnScene": 0
+          }
+        },
+        {
+          "type": "UseLetterTask",
+          "settings": {
+            "_letter": "A",
+            "_times": 4,
+            "_text": "Use letter {0} {1} times",
+            "_minOnScene": 0,
+            "_maxOnScene": 0
           }
         }
       ]
     }
-  ]
+  ],
+  "prefab": "Assets/Prefabs/Game/Levels/Level_04.prefab",
+  "config": "Assets/Resources/Levels/Level_04.asset"
 }

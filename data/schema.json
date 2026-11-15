@@ -5,7 +5,9 @@
       "menu": "Камни/Разрушить камни",
       "defaults": {
         "_stones": 3,
-        "_text": "Break {0} stones"
+        "_text": "Break {0} stones",
+        "_minOnScene": 0,
+        "_maxOnScene": 0
       },
       "fields": [
         {
@@ -20,6 +22,20 @@
           "label": "Text",
           "kind": "string",
           "tooltip": "Текст для игрока: {0} — сколько камней."
+        },
+        {
+          "name": "_minOnScene",
+          "label": "Min On Scene",
+          "kind": "int",
+          "tooltip": "Фаза 30: камней на сцене не меньше этого, пока задание идёт (не больше, чем ещё нужно разбить). 0 — Min On Scene блока Resources/TaskSceneRules.",
+          "min": 0.0
+        },
+        {
+          "name": "_maxOnScene",
+          "label": "Max On Scene",
+          "kind": "int",
+          "tooltip": "Фаза 30: камней на сцене не больше этого (не меньше минимума). 0 — Max On Scene блока.",
+          "min": 0.0
         }
       ]
     },
@@ -29,7 +45,8 @@
       "defaults": {
         "_letters": 5,
         "_words": 1,
-        "_text": "Make a word of {0} letters"
+        "_text": "Make a word of {0} letters",
+        "_wordsOnScene": 0
       },
       "fields": [
         {
@@ -51,6 +68,13 @@
           "label": "Text",
           "kind": "string",
           "tooltip": "Текст для игрока: {0} — длина («5» или «5+»), {1} — сколько слов («Make {1} words of {0} letters»)."
+        },
+        {
+          "name": "_wordsOnScene",
+          "label": "Words On Scene",
+          "kind": "int",
+          "tooltip": "Фаза 30: из шаров сцены собирается не меньше стольких слов нужной длины, пока задание идёт (не больше, чем ещё нужно слов). 0 — Min Words On Scene блока Resources/TaskSceneRules.",
+          "min": 0.0
         }
       ]
     },
@@ -60,7 +84,8 @@
       "defaults": {
         "_letters": 5,
         "_words": 1,
-        "_text": "Make a word of {0} letters"
+        "_text": "Make a word of {0} letters",
+        "_wordsOnScene": 0
       },
       "fields": [
         {
@@ -82,6 +107,13 @@
           "label": "Text",
           "kind": "string",
           "tooltip": "Текст для игрока: {0} — длина («5» или «5+»), {1} — сколько слов («Make {1} words of {0} letters»)."
+        },
+        {
+          "name": "_wordsOnScene",
+          "label": "Words On Scene",
+          "kind": "int",
+          "tooltip": "Фаза 30: из шаров сцены собирается не меньше стольких слов нужной длины, пока задание идёт (не больше, чем ещё нужно слов). 0 — Min Words On Scene блока Resources/TaskSceneRules.",
+          "min": 0.0
         }
       ]
     },
@@ -114,7 +146,9 @@
       "defaults": {
         "_letter": "A",
         "_times": 10,
-        "_text": "Use letter {0} {1} times"
+        "_text": "Use letter {0} {1} times",
+        "_minOnScene": 0,
+        "_maxOnScene": 0
       },
       "fields": [
         {
@@ -135,6 +169,20 @@
           "label": "Text",
           "kind": "string",
           "tooltip": "Текст для игрока: {0} — буква, {1} — сколько раз."
+        },
+        {
+          "name": "_minOnScene",
+          "label": "Min On Scene",
+          "kind": "int",
+          "tooltip": "Фаза 30: столько этих букв всегда на сцене, пока задание идёт (не больше, чем ещё нужно). 0 — Min On Scene блока Resources/TaskSceneRules.",
+          "min": 0.0
+        },
+        {
+          "name": "_maxOnScene",
+          "label": "Max On Scene",
+          "kind": "int",
+          "tooltip": "Фаза 30: этих букв на сцене не больше этого (не меньше минимума). 0 — Max On Scene блока.",
+          "min": 0.0
         }
       ]
     }
@@ -156,7 +204,8 @@
     "WildcardBall",
     "ExclamationBall",
     "WildcardHelper",
-    "Stars"
+    "Stars",
+    "TaskLetterWord"
   ],
   "starShares": [
     0.4,

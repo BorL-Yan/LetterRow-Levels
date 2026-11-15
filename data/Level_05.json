@@ -15,7 +15,7 @@
   "maxObjects": 0,
   "wordTier": "A1",
   "wordDifficulty": [
-    0,
+    0.0,
     0.3
   ],
   "startWords": [
@@ -40,12 +40,14 @@
           "settings": {
             "_letter": "A",
             "_times": 10,
-            "_text": "Use letter {0} {1} times"
+            "_text": "Use letter {0} {1} times",
+            "_minOnScene": 0,
+            "_maxOnScene": 0
           }
         }
       ]
     }
   ],
-  "prefab": "Assets/Prefabs/Game/Levels/Level_03.prefab",
-  "config": "Assets/Resources/Levels/Level_03.asset"
+  "prefab": "Assets/Prefabs/Game/Levels/Level_05.prefab",
+  "config": "Assets/Resources/Levels/Level_05.asset"
 }

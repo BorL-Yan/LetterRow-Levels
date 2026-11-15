@@ -2,14 +2,14 @@
   "unlocks": [
     {
       "feature": "LinkSynergy",
-      "level": 6,
+      "level": 4,
       "title": "Link Synergy",
       "tutorial": "LinkSynergy",
       "showOnMap": true
     },
     {
       "feature": "LongWordMultiplier",
-      "level": 6,
+      "level": 5,
       "title": "Long Word Bonus",
       "tutorial": "None",
       "showOnMap": false
