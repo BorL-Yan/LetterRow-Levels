@@ -31,18 +31,8 @@
         {
           "type": "ScorePointsTask",
           "settings": {
-            "_points": 60,
+            "_points": 25,
             "_text": "Score {0} points"
-          }
-        },
-        {
-          "type": "UseLetterTask",
-          "settings": {
-            "_letter": "A",
-            "_times": 10,
-            "_text": "Use letter {0} {1} times",
-            "_minOnScene": 0,
-            "_maxOnScene": 0
           }
         }
       ]
