@@ -2,7 +2,7 @@
   "unlocks": [
     {
       "feature": "LinkSynergy",
-      "level": 6,
+      "level": 5,
       "title": "Link Synergy",
       "tutorial": "LinkSynergy",
       "showOnMap": true
@@ -103,7 +103,53 @@
     {
       "afterLevel": 5,
       "picks": 3,
-      "rewards": []
+      "rewards": [
+        {
+          "kind": "Coins",
+          "item": "",
+          "amount": 100
+        },
+        {
+          "kind": "InfiniteLives",
+          "item": "",
+          "amount": 15
+        },
+        {
+          "kind": "Coins",
+          "item": "",
+          "amount": 50
+        },
+        {
+          "kind": "Coins",
+          "item": "",
+          "amount": 100
+        },
+        {
+          "kind": "InfiniteLives",
+          "item": "",
+          "amount": 10
+        },
+        {
+          "kind": "Coins",
+          "item": "",
+          "amount": 100
+        },
+        {
+          "kind": "Coins",
+          "item": "",
+          "amount": 250
+        },
+        {
+          "kind": "Coins",
+          "item": "",
+          "amount": 100
+        },
+        {
+          "kind": "Coins",
+          "item": "",
+          "amount": 300
+        }
+      ]
     },
     {
       "afterLevel": 15,
