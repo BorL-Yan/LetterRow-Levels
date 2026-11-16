@@ -47,6 +47,13 @@
             "_minOnScene": 0,
             "_maxOnScene": 0
           }
+        },
+        {
+          "type": "ScorePointsTask",
+          "settings": {
+            "_points": 70,
+            "_text": "Score {0} points"
+          }
         }
       ]
     }
