@@ -15,7 +15,7 @@
   "maxObjects": 0,
   "wordTier": "A1",
   "wordDifficulty": [
-    0.0,
+    0,
     0.3
   ],
   "startWords": [
@@ -31,7 +31,7 @@
         {
           "type": "ScorePointsTask",
           "settings": {
-            "_points": 60,
+            "_points": 100,
             "_text": "Score {0} points"
           }
         },
