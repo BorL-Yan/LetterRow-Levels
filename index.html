@@ -112,15 +112,22 @@ input:focus, select:focus, textarea:focus { outline: 2px solid color-mix(in srgb
 .help-btn { flex: none; width: 22px; height: 22px; padding: 0; border-radius: 50%; font-size: 12px; font-weight: 700; line-height: 20px; }
 .help-btn.on { background: var(--accent); color: #fff; border-color: var(--accent); }
 .hint { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.35; }
-.choices { display: grid; gap: 2px; margin-top: 6px; padding: 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+.asset .help-btn { vertical-align: middle; }
+/* Окно «?»: что выбрано и что это делает, ниже — все варианты. */
+.modal-back[hidden] { display: none; }
+.modal-back { position: fixed; inset: 0; z-index: 20; background: rgba(0, 0, 0, .45); display: grid; place-items: center; padding: 16px; }
+.modal { width: min(560px, 100%); max-height: calc(100vh - 32px); overflow: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px 14px; box-shadow: 0 10px 40px rgba(0, 0, 0, .3); outline: none; }
+.modal-head { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.modal-current { margin: 6px 0 4px; padding: 10px 12px; border-radius: 9px; background: var(--chip); border-left: 3px solid var(--accent); }
+.modal-current b { font-size: 16px; }
+.modal-current p { margin: 4px 0 0; line-height: 1.45; }
+.modal h4 { margin: 12px 0 4px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.choices { display: grid; gap: 2px; }
 .choices h5 { margin: 6px 8px 2px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
 .choice { display: grid; gap: 1px; text-align: left; border-color: transparent; background: transparent; padding: 5px 8px; }
-.choice:hover { background: var(--panel); }
-.choice.on { border-color: var(--accent); background: var(--panel); }
+.choice:hover { background: var(--chip); }
+.choice.on { border-color: var(--accent); }
 .choice span { font-size: 12px; color: var(--muted); }
-.task > .choices { grid-column: 1 / -1; }
-.line-help { padding: 0 12px 8px 40px; background: var(--unlock); }
-.line-help .choices { margin-top: 0; }
 .asset { font-size: 13px; }
 .asset .chip { display: inline-block; background: var(--chip); border-radius: 6px; padding: 1px 7px; margin-right: 6px; }
 .rewards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
@@ -185,6 +192,7 @@ input:focus, select:focus, textarea:focus { outline: 2px solid color-mix(in srgb
 </header>
 <section id="gh" class="gh" hidden></section>
 <main id="app"><div class="empty">Загрузка…</div></main>
+<div id="dlg" class="modal-back" data-action="help-close" hidden></div>
 
 <script>
 "use strict";
@@ -314,8 +322,9 @@ const I18N = {
     "Слово с двойной буквой": "Word with a double letter", "Слово с повтором буквы": "Word with a repeated letter",
     "Слово с N гласными": "Word with N vowels", "Слово с N одинаковыми буквами": "Word with N same letters",
     // выбор задания и обучения: пояснения (LockTaskMenu → Hint, LevelTutorialKind → ChoiceHint из schema.json)
-    "Что это такое — все варианты с пояснением": "What is this — all options explained",
-    "Нажмите вариант, чтобы выбрать его.": "Click an option to pick it.", "Задания": "Tasks",
+    "Что это? Пояснение": "What is this? Explanation", "Задание": "Task",
+    "Все варианты — нажмите, чтобы выбрать": "All options — click to pick", "Пояснения пока нет.": "No explanation yet.",
+    "Ничего не выбрано.": "Nothing selected.",
     "Набрать очки словами. Цель — сколько очков.": "Score points with words. Goal — how many points.",
     "Собирать слова с нужной буквой, пока она не встретится N раз. Считается каждое вхождение: BANANA — 3 раза A. Джокер * не считается.": "Make words with the letter until it appears N times. Every occurrence counts: BANANA — A 3 times. Wildcard * does not count.",
     "Составить слова ровно из N букв. N = 5: HOUSE — да, HOUSES — нет.": "Make words of exactly N letters. N = 5: HOUSE — yes, HOUSES — no.",
@@ -499,7 +508,7 @@ const S = {
   levels: new Map(),
   prog: null,
   open: new Set(),      // раскрытые: «L3», «B5» (бонусный после уровня 5)
-  help: new Set(),      // открытые «?» у выбора задания / обучения: id их списка
+  dialog: null,         // окно «?»: { kind, target, value } (renderDialog)
   filter: "all",
   online: null,
   playing: false,
@@ -546,20 +555,53 @@ async function api(method, url, body) {
 
 function taskType(name) { return (S.state?.taskTypes || []).find((t) => t.type === name); }
 
-// ── Выбор задания и обучения: название, пояснение, «?» со всеми вариантами ──
-// Пояснения — из schema.json / Unity (LockTaskMenu → Hint, LevelTutorialKind → [InspectorName] + [ChoiceHint]);
-// старый schema.json без них — названия как раньше, пояснений нет.
+// Те же пояснения, что в C# (LockTaskMenu → Hint, LevelTutorialKind → [InspectorName] + [ChoiceHint]) — на случай
+// старого schema.json без них (телефон до «Получить»). Есть в schema.json — берётся оттуда. Новое задание / обучение:
+// пояснение пишется в C#, сюда — по желанию.
+const HINTS_FALLBACK = {
+  tasks: {
+    DestroyStonesTask: "Разбить камни на поле взрывами шаров и звёздами. Без камней на сцене задание не сдвинется — задайте камни уровня.",
+    DoubleLetterWordTask: "Слово, где две одинаковые буквы стоят рядом: BOOK, APPLE — да; BANANA — нет.",
+    ExactLengthWordTask: "Составить слова ровно из N букв. N = 5: HOUSE — да, HOUSES — нет.",
+    MinLengthWordTask: "Составить слова из N букв и длиннее. N = 5: HOUSE и HOUSES — да, CAT — нет.",
+    RepeatLetterWordTask: "Слово ровно из M букв, где одна буква встречается N раз и больше. M 6, N 3: BANANA, CHEESE — да; APPLES — нет.",
+    SameLettersWordTask: "Слово любой длины, где одна буква встречается N раз и больше. N 3: BANANA, EERIE — да; APPLE — нет.",
+    ScorePointsTask: "Набрать очки словами. Цель — сколько очков.",
+    UseLetterTask: "Собирать слова с нужной буквой, пока она не встретится N раз. Считается каждое вхождение: BANANA — 3 раза A. Джокер * не считается.",
+    VowelsWordTask: "Слово, где гласных (A E I O U) N и больше: N 3 — BANANA, AUDIO — да.",
+  },
+  tutorials: {
+    None: ["Нет", "Своего обучения нет. Если на этом уровне открывается способность (список открытий), идёт её обучение."],
+    SelectAndConfirm: ["Первое слово: шары и Confirm", "Самое первое обучение (уровень 1). Сначала окно задания, потом палец по очереди показывает шары слова и кнопку Confirm."],
+    LinkSynergy: ["Синергия соседних шаров", "Слово из шаров, которые касаются друг друга: показывает бонус синергии, затем Confirm."],
+    BoosterTap: ["Нажать бустер", "Открывает окно бустеров, палец нажимает бустер (бесплатно). Какой бустер — по способности, которая открывается на этом уровне: «Длинное слово», x2 или «Очистка поля»."],
+    AddLetters: ["Кнопка «Новые буквы»", "Палец нажимает помощника «Новые буквы», затем фокус идёт за каждым упавшим шаром."],
+    Merge: ["Слияние шаров", "Два одинаковых шара сливаются в один, показывается сумма очков. Нажимать ничего не нужно."],
+    WildcardBall: ["Шар-джокер *", "На поле бросается шар *, игрок собирает короткое слово, где * заменяет букву, и жмёт Confirm."],
+    ExclamationBall: ["Шар !", "На поле бросается шар !, игрок собирает слово и ставит ! последним, затем Confirm."],
+    WildcardHelper: ["Кнопка вызова *", "Палец нажимает помощника «Джокер *», появляется шар *, дальше — слово с ним."],
+    Stars: ["Звёзды", "Слияние даёт шар со звездой, слово с этим шаром — звёзды летят."],
+    TaskLetterWord: ["Задание «Использовать букву»", "Показывает окно задания «Использовать букву», затем слово, где эта буква встречается один раз, и Confirm. Для уровня с этим заданием (сейчас уровень 3)."],
+    RepeatLetterWord: ["Задание «Слово с повтором буквы»", "Окно сразу вокруг одинаковых шаров слова, затем слово с ними. Для уровня с заданием «Слово с повтором буквы»."],
+    DoubleLetterWord: ["Задание «Слово с двойной буквой»", "Когда две одинаковые буквы легли в ряд рядом, окно показывает эту пару. Для уровня с заданием «Слово с двойной буквой»."],
+    VowelsWord: ["Задание «Слово с N гласными»", "Гласные шары слова подсвечиваются по одной, затем слово. Для уровня с заданием «Слово с N гласными»."],
+    SameLettersWord: ["Задание «Слово с N одинаковыми буквами»", "Каждая выбранная одинаковая буква добавляется к окну на ряду букв. Для уровня с заданием «Слово с N одинаковыми буквами»."],
+  },
+};
+
+// ── Выбор задания и обучения: название, пояснение под списком, «?» — окно с пояснением и всеми вариантами ──
 function tutorialChoices() {
   const info = S.state?.tutorialInfo || [];
   return (S.state?.tutorials || []).map((name) => {
     const i = info.find((x) => x.name === name);
-    return { value: name, title: i?.title || (name === "None" ? "Нет" : name), hint: i?.hint || "" };
+    const f = HINTS_FALLBACK.tutorials[name];
+    return { value: name, title: i?.title || f?.[0] || (name === "None" ? "Нет" : name), hint: i?.hint || f?.[1] || "" };
   });
 }
 function taskChoices() {
   return (S.state?.taskTypes || []).map((t) => {
     const path = String(t.menu || t.type).split("/");
-    return { value: t.type, title: path.pop(), group: path.join("/"), hint: t.hint || "", path: t.menu || t.type };
+    return { value: t.type, title: path.pop(), group: path.join("/"), hint: t.hint || HINTS_FALLBACK.tasks[t.type] || "", path: t.menu || t.type };
   }).sort((a, b) => (!!a.group - !!b.group) || a.path.localeCompare(b.path, "ru")); // без группы — первыми
 }
 // <option>; подряд идущие варианты одной группы — в <optgroup>.
@@ -573,25 +615,51 @@ function choiceOptions(items, current) {
   if (group) html += "</optgroup>";
   return html;
 }
-function helpBtn(target) {
-  return `<button type="button" class="help-btn ${S.help.has(target) ? "on" : ""}" data-action="help" data-help="${esc(target)}" title="Что это такое — все варианты с пояснением">?</button>`;
+// «?» рядом с выбором: kind — "task" / "tutorial" / "unlock-tutorial"; target — id списка (из окна можно выбрать
+// другой вариант); без target (задание-ассет) — только пояснение value.
+function helpBtn(kind, target, value) {
+  return `<button type="button" class="help-btn" data-action="help" data-kind="${kind}" ${target ? `data-target="${esc(target)}"` : ""} ${value ? `data-value="${esc(value)}"` : ""} title="Что это? Пояснение">?</button>`;
 }
 function hintHtml(items, current) {
   const hint = items.find((i) => i.value === current)?.hint;
   return hint ? `<div class="hint">${esc(hint)}</div>` : "";
 }
-// Все варианты с пояснением; нажатие выбирает вариант в списке target (как обычный выбор — событие change).
-function choiceList(target, items, current) {
-  if (!S.help.has(target)) return "";
-  let html = "", group = null;
-  for (const i of items) {
-    const g = i.group || "";
-    if (g !== group) { if (g) html += `<h5>${esc(g)}</h5>`; group = g; }
-    html += `<button type="button" class="choice ${i.value === current ? "on" : ""}" data-action="pick" data-target="${esc(target)}" data-value="${esc(i.value)}">
-      <b>${esc(i.title)}</b>${i.hint ? `<span>${esc(i.hint)}</span>` : ""}</button>`;
-  }
-  return `<div class="choices"><div class="hint" style="margin:0 8px 2px">Нажмите вариант, чтобы выбрать его.</div>${html}</div>`;
+function helpItems(kind) {
+  if (kind === "task") return taskChoices();
+  const items = tutorialChoices();
+  return kind === "unlock-tutorial" ? items.map((t) => (t.value === "None" ? { ...t, title: "без обучения" } : t)) : items;
 }
+// Окно пояснения (S.dialog): сверху — выбранный вариант и что он делает, ниже — все варианты (нажать — выбрать).
+function renderDialog() {
+  const box = document.getElementById("dlg");
+  const d = S.dialog;
+  if (!d) { box.hidden = true; box.innerHTML = ""; return; }
+  const items = helpItems(d.kind);
+  const sel = d.target ? document.getElementById(d.target) : null;
+  const current = sel ? sel.value : d.value;
+  const cur = items.find((i) => i.value === current);
+  const what = d.kind === "task" ? "Задание" : "Обучение";
+  let list = "";
+  if (sel) {
+    let group = null;
+    for (const i of items) {
+      const g = i.group || "";
+      if (g !== group) { if (g) list += `<h5>${esc(g)}</h5>`; group = g; }
+      list += `<button type="button" class="choice ${i.value === current ? "on" : ""}" data-action="pick" data-value="${esc(i.value)}">
+        <b>${esc(i.title)}</b>${i.hint ? `<span>${esc(i.hint)}</span>` : ""}</button>`;
+    }
+    list = `<h4>Все варианты — нажмите, чтобы выбрать</h4><div class="choices">${list}</div>`;
+  }
+  box.innerHTML = `<div class="modal" role="dialog" aria-modal="true" data-action="noop">
+      <div class="modal-head"><span class="muted">${what}</span><span class="spacer"></span>
+        <button type="button" class="small" data-action="help-close" title="Закрыть">✕</button></div>
+      <div class="modal-current"><b>${esc(cur ? cur.title : what === "Задание" ? "— тип задания —" : "Нет")}</b>
+        <p>${esc(cur?.hint || (cur ? "Пояснения пока нет." : "Ничего не выбрано."))}</p></div>
+      ${list}</div>`;
+  box.hidden = false;
+  box.querySelector(".modal").focus?.();
+}
+
 function regular() { return [...S.levels.values()].filter((L) => L.draft).sort((a, b) => a.n - b.n); }
 function levelCount() { return regular().length; }
 function unlocks() { return S.prog?.draft?.unlocks || []; }
@@ -903,17 +971,16 @@ function unlockHtml(u) {
   const tid = `tut-U-${u.feature}`;
   const tutHint = tutorials.find((t) => t.value === u.tutorial)?.hint || "Обучение на уровне открытия";
   const beyond = u.level > levelCount() ? ' <span class="muted">(такого уровня ещё нет)</span>' : "";
-  const help = choiceList(tid, tutorials, u.tutorial);
   return `<div class="line unlock seq" data-seq="unlock" data-feature="${esc(u.feature)}" id="unlock-${esc(u.feature)}">
     ${handle("unlock", `data-feature="${esc(u.feature)}"`)}
     <span>🔓 Открывается</span>
     <select data-action="unlock-feature" data-feature="${esc(u.feature)}" title="Какая способность">${options}</select>
     <span class="what">с уровня ${u.level}</span>${beyond}
-    <select id="${esc(tid)}" data-action="unlock-tutorial" data-feature="${esc(u.feature)}" title="${esc(tutHint)}">${choiceOptions(tutorials, u.tutorial)}</select>${helpBtn(tid)}
+    <select id="${esc(tid)}" data-action="unlock-tutorial" data-feature="${esc(u.feature)}" title="${esc(tutHint)}">${choiceOptions(tutorials, u.tutorial)}</select>${helpBtn("unlock-tutorial", tid)}
     <span class="spacer"></span>
     <span class="mv"><button data-action="unlock-up" data-feature="${esc(u.feature)}" ${u.level > 1 ? "" : "disabled"} title="На уровень раньше">↑</button><button data-action="unlock-down" data-feature="${esc(u.feature)}" ${u.level <= levelCount() ? "" : "disabled"} title="На уровень позже">↓</button></span>
     <button class="small danger" data-action="unlock-delete" data-feature="${esc(u.feature)}" title="Убрать открытие">✕</button>
-  </div>${help ? `<div class="line-help">${help}</div>` : ""}`;
+  </div>`;
 }
 
 function bonusHtml(b) {
@@ -987,14 +1054,14 @@ function taskHtml(L, si, ti, t) {
   const remove = `<button class="small danger" data-action="del-task" ${ids} title="Удалить задание">✕</button>`;
   if (t.asset !== undefined) {
     return `<div class="task"><div class="asset"><span class="chip">ассет</span>${esc(t.name || "(пусто)")}</div>
-      <div class="asset">${esc(describeTask(t))} <small class="muted">— настройки в ассете задания</small>
+      <div class="asset">${esc(describeTask(t))} ${t.type ? helpBtn("task", null, t.type) : ""} <small class="muted">— настройки в ассете задания</small>
         ${t.type ? `<button class="small" data-action="unlink-asset" ${ids}>Сделать заданием уровня</button>` : ""}</div>${remove}</div>`;
   }
   const pid = `task-${L.key}-${si}-${ti}`;
   const choices = taskChoices();
   const select = `<div class="task-pick"><div class="pick-row"><select id="${pid}" data-action="task-type" ${ids} data-key="${L.key}:${base}.type">
       <option value="" ${!t.type ? "selected" : ""}>— тип задания —</option>
-      ${choiceOptions(choices, t.type)}</select>${helpBtn(pid)}</div>${hintHtml(choices, t.type)}</div>`;
+      ${choiceOptions(choices, t.type)}</select>${helpBtn("task", pid)}</div>${hintHtml(choices, t.type)}</div>`;
   const tt = taskType(t.type);
   let fields = "";
   if (tt) {
@@ -1018,7 +1085,7 @@ function taskHtml(L, si, ti, t) {
       return `<label title="${tip}">${esc(label)}${control}</label>`;
     }).join("");
   }
-  return `<div class="task">${select}<div class="task-fields">${fields}</div>${remove}${choiceList(pid, choices, t.type)}</div>`;
+  return `<div class="task">${select}<div class="task-fields">${fields}</div>${remove}</div>`;
 }
 
 // Поле «Обучение» уровня: список с названиями, под ним — что делает выбранное, «?» — все варианты.
@@ -1027,8 +1094,8 @@ function tutorialField(L) {
   const items = tutorialChoices();
   const cur = L.draft.tutorial || "None";
   return `<label class="f wide"><span>Обучение</span>
-      <span class="pick-row"><select id="${id}" data-l="${L.key}" data-bind="tutorial" data-type="select" data-key="${L.key}:tutorial">${choiceOptions(items, cur)}</select>${helpBtn(id)}</span></label>
-    ${hintHtml(items, cur)}${choiceList(id, items, cur)}`;
+      <span class="pick-row"><select id="${id}" data-l="${L.key}" data-bind="tutorial" data-type="select" data-key="${L.key}:tutorial">${choiceOptions(items, cur)}</select>${helpBtn("tutorial", id)}</span></label>
+    ${hintHtml(items, cur)}`;
 }
 
 function editorHtml(L) {
@@ -1318,6 +1385,11 @@ app.addEventListener("change", (e) => {
   if (el.dataset.bind) onEdit(e, true);
 });
 
+// Окно «?» закрывается по Escape.
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && S.dialog) { S.dialog = null; renderDialog(); }
+});
+
 document.addEventListener("click", (e) => {
   const el = e.target.closest("[data-action]");
   if (!el || el.tagName === "SELECT" || el.tagName === "INPUT" || el.disabled) return;
@@ -1335,17 +1407,16 @@ document.addEventListener("click", (e) => {
       document.querySelectorAll("#filters button").forEach((x) => x.classList.toggle("on", x === el));
       render(); return;
     case "collapse": S.open.clear(); render(); return;
-    case "help": {
-      const id = el.dataset.help;
-      S.help.has(id) ? S.help.delete(id) : S.help.add(id);
-      render(); return;
-    }
+    case "help":
+      S.dialog = { kind: el.dataset.kind, target: el.dataset.target || null, value: el.dataset.value || "" };
+      renderDialog(); return;
+    case "help-close": S.dialog = null; renderDialog(); return;
+    case "noop": return; // нажатие внутри окна — не закрывать
     case "pick": {
-      // Вариант из списка «?» — как выбор в самом списке: тот же обработчик change.
-      const sel = document.getElementById(el.dataset.target);
-      S.help.delete(el.dataset.target);
+      // Вариант из окна «?» — как выбор в самом списке: тот же обработчик change.
+      const sel = S.dialog?.target ? document.getElementById(S.dialog.target) : null;
+      S.dialog = null; renderDialog();
       if (sel && sel.value !== el.dataset.value) { sel.value = el.dataset.value; sel.dispatchEvent(new Event("change", { bubbles: true })); }
-      else render();
       return;
     }
     case "add-level": insertLevel(levelCount()); return;
