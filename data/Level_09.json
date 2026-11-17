@@ -15,7 +15,7 @@
   "maxObjects": 0,
   "wordTier": "A1",
   "wordDifficulty": [
-    0,
+    0.0,
     0.3
   ],
   "startWords": [
@@ -25,7 +25,7 @@
   "tutorialWord": "",
   "subLevels": [
     {
-      "id": "",
+      "id": "fca9dc10e31543fd8870d384f1916b19",
       "order": "Together",
       "tasks": [
         {
@@ -37,5 +37,7 @@
         }
       ]
     }
-  ]
+  ],
+  "prefab": "Assets/Prefabs/Game/Levels/Level_09.prefab",
+  "config": "Assets/Resources/Levels/Level_09.asset"
 }

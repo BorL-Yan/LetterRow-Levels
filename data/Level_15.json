@@ -6,9 +6,9 @@
   "coins": 60,
   "threeStarScore": 800,
   "stars": [
-    200,
-    375,
-    500
+    320,
+    600,
+    800
   ],
   "startObjects": 30,
   "stones": 3,
@@ -25,17 +25,26 @@
   "tutorialWord": "",
   "subLevels": [
     {
-      "id": "",
+      "id": "fca9dc10e31543fd8870d384f1916b19",
       "order": "Together",
       "tasks": [
         {
-          "type": "ScorePointsTask",
+          "type": "DestroyStonesTask",
           "settings": {
-            "_points": 25,
-            "_text": "Score {0} points"
+            "_stones": 3,
+            "_text": "Break {0} stones",
+            "_minOnScene": 0,
+            "_maxOnScene": 0
           }
         }
       ]
+    },
+    {
+      "id": "273ff6df71444841bcdd82f8e7105fff",
+      "order": "Together",
+      "tasks": []
     }
-  ]
+  ],
+  "prefab": "Assets/Prefabs/Game/Levels/Level_15.prefab",
+  "config": "Assets/Resources/Levels/Level_15.asset"
 }

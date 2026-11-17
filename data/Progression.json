@@ -39,7 +39,7 @@
       "feature": "BoosterBreakAll",
       "level": 18,
       "title": "Clear Field Booster",
-      "tutorial": "Stars",
+      "tutorial": "BoosterTap",
       "showOnMap": true
     },
     {
@@ -101,57 +101,6 @@
   ],
   "bonusLevels": [
     {
-      "afterLevel": 4,
-      "picks": 3,
-      "rewards": [
-        {
-          "kind": "Coins",
-          "item": "",
-          "amount": 50
-        },
-        {
-          "kind": "Coins",
-          "item": "",
-          "amount": 100
-        },
-        {
-          "kind": "Coins",
-          "item": "",
-          "amount": 200
-        },
-        {
-          "kind": "Booster",
-          "item": "LongestWord",
-          "amount": 1
-        },
-        {
-          "kind": "Booster",
-          "item": "Multiplier",
-          "amount": 1
-        },
-        {
-          "kind": "Booster",
-          "item": "BreakAll",
-          "amount": 1
-        },
-        {
-          "kind": "Helper",
-          "item": "AddLetters",
-          "amount": 1
-        },
-        {
-          "kind": "Helper",
-          "item": "Wildcard",
-          "amount": 1
-        },
-        {
-          "kind": "InfiniteLives",
-          "item": "",
-          "amount": 30
-        }
-      ]
-    },
-    {
       "afterLevel": 5,
       "picks": 3,
       "rewards": [
@@ -199,57 +148,6 @@
           "kind": "Coins",
           "item": "",
           "amount": 300
-        }
-      ]
-    },
-    {
-      "afterLevel": 6,
-      "picks": 3,
-      "rewards": [
-        {
-          "kind": "Coins",
-          "item": "",
-          "amount": 50
-        },
-        {
-          "kind": "Coins",
-          "item": "",
-          "amount": 100
-        },
-        {
-          "kind": "Coins",
-          "item": "",
-          "amount": 200
-        },
-        {
-          "kind": "Booster",
-          "item": "LongestWord",
-          "amount": 1
-        },
-        {
-          "kind": "Booster",
-          "item": "Multiplier",
-          "amount": 1
-        },
-        {
-          "kind": "Booster",
-          "item": "BreakAll",
-          "amount": 1
-        },
-        {
-          "kind": "Helper",
-          "item": "AddLetters",
-          "amount": 1
-        },
-        {
-          "kind": "Helper",
-          "item": "Wildcard",
-          "amount": 1
-        },
-        {
-          "kind": "InfiniteLives",
-          "item": "",
-          "amount": 30
         }
       ]
     },
