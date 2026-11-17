@@ -6,16 +6,16 @@
   "coins": 0,
   "threeStarScore": 150,
   "stars": [
-    160,
-    300,
-    400
+    60,
+    112,
+    150
   ],
   "startObjects": 30,
   "stones": 0,
   "maxObjects": 0,
   "wordTier": "A1",
   "wordDifficulty": [
-    0,
+    0.0,
     0.1
   ],
   "startWords": [],

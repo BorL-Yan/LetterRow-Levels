@@ -99,13 +99,28 @@ input:focus, select:focus, textarea:focus { outline: 2px solid color-mix(in srgb
 .seg button.on.hard { background: var(--err); }
 .subs { margin-top: 12px; display: grid; gap: 10px; }
 .sublevel { border: 1px solid var(--line); border-radius: 9px; background: var(--panel); padding: 10px 12px; }
-.sublevel-head { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+.sublevel-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 6px; }
 .sublevel-head h4 { margin: 0; font-size: 14px; }
 .sublevel-head select { width: auto; }
 .task { display: grid; grid-template-columns: 220px 1fr auto; gap: 8px; align-items: start; padding: 7px 0; border-top: 1px dashed var(--line); }
 .task:first-of-type { border-top: 0; }
 .task-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px 10px; }
 .task-fields label { font-size: 12px; color: var(--muted); display: grid; gap: 2px; }
+/* Выбор задания и обучения: под списком — что выбрано, «?» — все варианты с пояснением (нажать — выбрать). */
+.task-pick { display: grid; gap: 0; min-width: 0; }
+.pick-row { display: flex; gap: 6px; align-items: center; min-width: 0; }
+.help-btn { flex: none; width: 22px; height: 22px; padding: 0; border-radius: 50%; font-size: 12px; font-weight: 700; line-height: 20px; }
+.help-btn.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+.hint { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.35; }
+.choices { display: grid; gap: 2px; margin-top: 6px; padding: 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+.choices h5 { margin: 6px 8px 2px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+.choice { display: grid; gap: 1px; text-align: left; border-color: transparent; background: transparent; padding: 5px 8px; }
+.choice:hover { background: var(--panel); }
+.choice.on { border-color: var(--accent); background: var(--panel); }
+.choice span { font-size: 12px; color: var(--muted); }
+.task > .choices { grid-column: 1 / -1; }
+.line-help { padding: 0 12px 8px 40px; background: var(--unlock); }
+.line-help .choices { margin-top: 0; }
 .asset { font-size: 13px; }
 .asset .chip { display: inline-block; background: var(--chip); border-radius: 6px; padding: 1px 7px; margin-right: 6px; }
 .rewards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
@@ -166,12 +181,316 @@ input:focus, select:focus, textarea:focus { outline: 2px solid color-mix(in srgb
   <button data-action="add-unlock" title="Способность (бустер, помощник, механика шаров), которая открывается с уровня">+ Открытие</button>
   <button data-action="add-bonus" title="Бонусный уровень: 9 наград, игрок берёт несколько">+ Бонусный уровень</button>
   <button class="primary" data-action="add-level">+ Уровень</button>
+  <button data-action="lang" id="lang-btn" title="Язык страницы">EN</button>
 </header>
 <section id="gh" class="gh" hidden></section>
 <main id="app"><div class="empty">Загрузка…</div></main>
 
 <script>
 "use strict";
+// ───────────────────────── язык: русский / английский (LevelEditorSync_Plan.md §7.3) ─────────────────────────
+// Код страницы пишет по-русски; на английском переводятся готовые тексты в DOM (текст, title, placeholder, заголовок
+// окна, confirm): точное совпадение → шаблоны с числами → части через « · » и «; ». Чего нет в словаре — остаётся.
+// Данные (слова, названия способностей, значения полей) не переводятся: это не текст страницы.
+const I18N = {
+  lang: "ru",
+  EXACT: {
+    "Уровни игры": "Game levels", "Уровни": "Levels", "Уровни · телефон": "Levels · phone", "подключение…": "connecting…",
+    "Все": "All", "Сложные": "Hard", "С замечаниями": "With issues", "Свернуть все": "Collapse all",
+    "Способность (бустер, помощник, механика шаров), которая открывается с уровня": "Ability (booster, helper, ball mechanic) unlocked from a level",
+    "+ Открытие": "+ Unlock", "Бонусный уровень: 9 наград, игрок берёт несколько": "Bonus level: 9 rewards, the player picks a few",
+    "+ Бонусный уровень": "+ Bonus level", "+ Уровень": "+ Level", "Загрузка…": "Loading…",
+    "Вместе": "Together", "По одному": "One by one",
+    "Очки": "Points", "Текст для игрока": "Player text", "Буква": "Letter", "Сколько раз": "How many times",
+    "Букв в слове": "Letters in word", "Сколько слов": "How many words", "Сколько камней": "How many stones",
+    "На сцене не меньше (0 — общий блок)": "At least on scene (0 — shared block)", "На сцене не больше (0 — общий блок)": "At most on scene (0 — shared block)",
+    "Готовых слов на сцене (0 — общий блок)": "Ready words on scene (0 — shared block)",
+    "Монеты": "Coins", "Бустер": "Booster", "Помощник": "Helper", "Бесконечные жизни": "Infinite lives",
+    "монет": "coins", "шт.": "pcs", "мин": "min", "сколько": "amount",
+    "Длинное слово": "Longest word", "Очистка поля": "Clear field", "Новые буквы": "New letters", "Джокер *": "Wildcard *",
+    "сохранено": "saved", "изменено…": "edited…", "сохраняется…": "saving…", "конфликт": "conflict", "ошибка": "error",
+    "нет связи": "offline", "в файле · ждёт Unity": "in file · waiting for Unity",
+    "Без Unity · сохраняется на этом устройстве": "No Unity · saved on this device",
+    "Unity не отвечает — правки сохранятся, когда он вернётся": "Unity is not responding — edits will be saved when it is back",
+    "Unity в фоне — правки пишутся в файлы, в ассеты попадут, когда окно Unity станет активным": "Unity is in the background — edits go to files and reach the assets when the Unity window is active",
+    "Unity · Play Mode (префабы обновятся после выхода)": "Unity · Play Mode (prefabs update after exit)",
+    "Сначала разберите конфликт или ошибку сохранения": "Resolve the conflict or save error first",
+    "Переставляю уровни…": "Reordering levels…", "Unity переименовывает уровни…": "Unity is renaming levels…",
+    "Unity в фоне — сделайте окно Unity активным и повторите": "Unity is in the background — activate the Unity window and retry",
+    "Нет связи с Unity": "No connection to Unity",
+    "Бонусный уровень стоит после уровня — такого уровня нет": "A bonus level goes after a level — there is no such level",
+    "После каждого уровня уже есть бонусный уровень": "Every level already has a bonus level after it",
+    "Все способности уже открываются": "All abilities are already unlocked",
+    "тип не выбран": "type not selected", "(без типа)": "(no type)", "Слово": "Word", "по умолч.": "default",
+    "Перетащите, чтобы переставить": "Drag to reorder", "нет заданий": "no tasks", "Сложный": "Hard", "Обычный": "Normal",
+    "Поднять уровень": "Move level up", "Опустить уровень": "Move level down", "без обучения": "no tutorial",
+    "(такого уровня ещё нет)": "(no such level yet)", "🔓 Открывается": "🔓 Unlocks", "Какая способность": "Which ability",
+    "Обучение на уровне открытия": "Tutorial on the unlock level", "На уровень раньше": "One level earlier",
+    "На уровень позже": "One level later", "Убрать открытие": "Remove unlock", "🎁 Бонусный уровень": "🎁 Bonus level",
+    "Выше": "Up", "Ниже": "Down", "+ Награда": "+ Reward", "Раньше": "Earlier", "Позже": "Later", "Убрать награду": "Remove reward",
+    "Игрок берёт": "Player picks", "Награды переставляются перетаскиванием ⠿ или ← →.": "Reorder rewards by dragging ⠿ or with ← →.",
+    "Убрать бонусный уровень": "Remove bonus level", "Удалить задание": "Delete task", "ассет": "asset", "(пусто)": "(empty)",
+    "— настройки в ассете задания": "— settings are in the task asset", "Сделать заданием уровня": "Make it a level task",
+    "— тип задания —": "— task type —", "от": "from", "до": "to", "по умолчанию (LevelProgression)": "default (LevelProgression)",
+    "нет": "none", "есть": "present",
+    "Вместе — все задания сразу; по одному — следующее после текущего": "Together — all tasks at once; one by one — the next after the current",
+    "+ Задание": "+ Task", "Удалить подуровень": "Delete sub-level", "Нет заданий": "No tasks",
+    "Уровень изменён в Unity, пока здесь были правки.": "The level was changed in Unity while you were editing here.",
+    "Взять из Unity": "Take from Unity", "Перезаписать моими": "Overwrite with mine", "Тип уровня": "Level type",
+    "Ходов": "Moves", "Монет за победу": "Coins for a win", "в игру пока не идёт": "not used in the game yet", "Звёзды": "Stars",
+    "Очки на 3 звезды": "Points for 3 stars", "это же полная полоса очков": "also the full score bar", "Объекты на сцене": "Objects on scene",
+    "Объектов на старте": "Objects at start", "шары + камни": "balls + stones", "Из них камней": "Of them stones",
+    "Лимит объектов": "Object limit", "0 — без лимита": "0 — no limit", "Слова": "Words", "Сложность (A1–B2)": "Difficulty (A1–B2)",
+    "Сложность слов 0–1": "Word difficulty 0–1", "от – до": "from – to", "Стартовые слова": "Start words", "Обучение": "Tutorial",
+    "Слово обучения": "Tutorial word", "+ Подуровень": "+ Sub-level", "Переместить на №": "Move to #", "Переместить": "Move",
+    "сложный уровень": "hard level", "открытие способности": "ability unlock", "бонусный уровень": "bonus level",
+    "⠿ — перетащить": "⠿ — drag", "⧉ — задание-ассет": "⧉ — task asset",
+    "Unity в Play Mode: ассеты меняются сразу, префабы — после выхода из Play Mode.": "Unity is in Play Mode: assets change at once, prefabs after leaving Play Mode.",
+    "Открытия и бонусные уровни изменены в Unity, пока здесь были правки.": "Unlocks and bonus levels were changed in Unity while you were editing here.",
+    "Тип": "Type", "Подур.": "Subs", "Задачи": "Tasks", "Ходы": "Moves", "Объекты": "Objects", "Статус": "Status",
+    "Нет уровней под фильтр": "No levels match the filter", "Уровней нет — нажмите «+ Уровень»": "No levels — press “+ Level”",
+    "Бонусный уровень стоит после уровня — перетащите его ниже уровня 1": "A bonus level goes after a level — drag it below level 1",
+    "Дальше некуда": "Can't go further",
+    "Настройки": "Settings", "не настроен — нужен токен": "not set up — a token is needed",
+    "GitHub не настроен — в Unity: Tools → Levels → GitHub → Настройки и конфликты": "GitHub is not set up — in Unity: Tools → Levels → GitHub → Settings and conflicts",
+    "ещё не синхронизировано": "not synced yet", "всё отправлено": "everything sent", "синхронизация…": "syncing…",
+    "Получить": "Pull", "Отправить": "Push", "Сначала разберите конфликты": "Resolve the conflicts first",
+    "Все правки — одним коммитом": "All edits in one commit", "что не отправлено": "what is not sent",
+    "Нет справочников (типы заданий, способности) — нажмите «Получить». Если не помогло — отправьте уровни из Unity.": "No reference lists (task types, abilities) — press “Pull”. If that does not help, push the levels from Unity.",
+    "— изменено и здесь, и на GitHub": "— changed both here and on GitHub",
+    "строки: здесь → на GitHub · пока не решено, здесь своя версия": "lines: here → on GitHub · until resolved, your version stays here",
+    "Взять с GitHub": "Take from GitHub", "Оставить удалённым": "Keep deleted", "Оставить мои": "Keep mine",
+    "Настройки GitHub": "GitHub settings", "Владелец": "Owner", "Репозиторий": "Repository", "Ветка": "Branch", "Токен": "Token",
+    "Fine-grained: только этот репозиторий, Contents — Read and write": "Fine-grained: this repository only, Contents — Read and write",
+    "сохранён — пусто, чтобы оставить": "saved — leave empty to keep", "Для проверки": "For testing", "Адрес API": "API address",
+    "Сохранить": "Save", "Закрыть": "Close", "Как сделать токен": "How to make a token",
+    "Токен хранится только в этом браузере на этом устройстве.": "The token is stored only in this browser on this device.",
+    "не сохранено": "not saved", "Отправляю на GitHub…": "Pushing to GitHub…", "Получаю с GitHub…": "Pulling from GitHub…",
+    "Ошибка синхронизации": "Sync error",
+    // различия по полям, «не отправлено», сообщения синхронизации
+    "Сложность": "Difficulty", "Сложность слов": "Word difficulty", "Порядок заданий": "Task order", "Текст": "Text",
+    "На сцене не меньше": "At least on scene", "На сцене не больше": "At most on scene", "Готовых слов на сцене": "Ready words on scene",
+    "С уровня": "From level", "После уровня": "After level", "Берёт наград": "Rewards picked", "Сколько": "Amount", "Вид": "Kind",
+    "Что": "Item", "Способность": "Ability", "Название": "Title", "На карте": "On map", "значение": "value",
+    "порядок уровней": "level order", "Порядок уровней": "Level order", "открытия и бонусные уровни": "unlocks and bonus levels",
+    "Открытия и бонусные уровни": "Unlocks and bonus levels", "справочники": "reference lists", "страница": "page", "файлы": "files",
+    "здесь удалён, на GitHub изменён": "deleted here, changed on GitHub", "Такого конфликта уже нет": "This conflict is already gone",
+    "Нет связи с GitHub — проверьте интернет": "No connection to GitHub — check the internet",
+    "GitHub не принял токен (401) — токен неверный или истёк": "GitHub rejected the token (401) — it is wrong or expired",
+    "GitHub отдал дерево не целиком": "GitHub returned an incomplete tree",
+    "Сначала разберите конфликты — что оставить, здесь или на GitHub": "Resolve the conflicts first — what to keep, here or on GitHub",
+    "нет подуровней": "no sub-levels", "на этом устройстве": "on this device",
+    "ассет и префаб уровня сделает Unity после «Получить»": "Unity will create the level asset and prefab after “Pull”",
+    "нет такого адреса": "no such address",
+    "GitHub не настроен — «Настройки»: владелец, репозиторий, токен": "GitHub is not set up — “Settings”: owner, repository, token",
+    "на GitHub нового нет": "nothing new on GitHub", "взять нечего": "nothing to take",
+    "На GitHub всё время появляется новое — повторите позже": "GitHub keeps getting new commits — retry later",
+    "Нечего отправлять — на GitHub то же самое": "Nothing to push — GitHub has the same",
+    "Доступна новая версия страницы": "A new version of the page is available", "Обновить": "Reload",
+    "Нет связи с Unity. Откройте страницу из Unity: Tools → Levels → Open Level Editor.": "No connection to Unity. Open the page from Unity: Tools → Levels → Open Level Editor.",
+    "Нет сети": "Offline", "Конфликт": "Conflict", "открытия и бонусы:": "unlocks and bonuses:", "Язык страницы": "Page language",
+    "Использовать букву": "Use a letter", "Разрушить камни": "Break stones", "Слово из N букв": "Word of N letters",
+    "Слово из N+ букв": "Word of N+ letters",
+    // сообщения Unity (сервер страницы, синхронизация из Unity)
+    "нет ассета уровня — создастся при сохранении": "no level asset — it is created on save",
+    "Unity в фоне: файл сохранён, ассеты обновятся, когда окно Unity станет активным": "Unity is in the background: the file is saved, assets update when the Unity window is active",
+    "Нет настроек GitHub: Tools → Levels → GitHub → Настройки (владелец, репозиторий, токен)": "No GitHub settings: Tools → Levels → GitHub → Settings (owner, repository, token)",
+    "Выйдите из Play Mode — синхронизация меняет ассеты уровней": "Leave Play Mode — sync changes level assets",
+    "Синхронизация уже идёт": "Sync is already running", "Идёт синхронизация — подождите": "Sync is running — wait",
+    "Пока шло получение, уровни менялись здесь — нажмите «Получить» ещё раз": "Levels changed here during the pull — press “Pull” again",
+    "На GitHub всё время появляется новое — повторите «Отправить» позже": "GitHub keeps getting new commits — push again later",
+    // названия и подсказки заданий (schema.json из Unity)
+    "Буквы/Использовать букву": "Letters/Use a letter", "Камни/Разрушить камни": "Stones/Break stones", "Набрать очки": "Score points",
+    "Слова/Слово из N букв": "Words/Word of N letters", "Слова/Слово из N+ букв": "Words/Word of N+ letters",
+    "Какая буква (первый символ, регистр не важен).": "Which letter (first character, case does not matter).",
+    "Сколько букв в слове.": "How many letters in the word.", "Сколько камней разрушить.": "How many stones to break.",
+    "Сколько очков набрать.": "How many points to score.", "Сколько таких слов составить.": "How many such words to make.",
+    "Сколько раз она должна встретиться в принятых словах (все вхождения: BANANA — 3 раза A).": "How many times it must appear in accepted words (all occurrences: BANANA — A 3 times).",
+    "Текст для игрока на панели заданий, {0} — сколько очков.": "Player text on the task bar, {0} — how many points.",
+    "Текст для игрока: {0} — буква, {1} — сколько раз.": "Player text: {0} — letter, {1} — how many times.",
+    "Текст для игрока: {0} — длина («5» или «5+»), {1} — сколько слов («Make {1} words of {0} letters»).": "Player text: {0} — length (“5” or “5+”), {1} — how many words (“Make {1} words of {0} letters”).",
+    "Текст для игрока: {0} — сколько камней.": "Player text: {0} — how many stones.",
+    "Слова": "Words", "Буквы": "Letters", "Камни": "Stones",
+    "Слово с двойной буквой": "Word with a double letter", "Слово с повтором буквы": "Word with a repeated letter",
+    "Слово с N гласными": "Word with N vowels", "Слово с N одинаковыми буквами": "Word with N same letters",
+    // выбор задания и обучения: пояснения (LockTaskMenu → Hint, LevelTutorialKind → ChoiceHint из schema.json)
+    "Что это такое — все варианты с пояснением": "What is this — all options explained",
+    "Нажмите вариант, чтобы выбрать его.": "Click an option to pick it.", "Задания": "Tasks",
+    "Набрать очки словами. Цель — сколько очков.": "Score points with words. Goal — how many points.",
+    "Собирать слова с нужной буквой, пока она не встретится N раз. Считается каждое вхождение: BANANA — 3 раза A. Джокер * не считается.": "Make words with the letter until it appears N times. Every occurrence counts: BANANA — A 3 times. Wildcard * does not count.",
+    "Составить слова ровно из N букв. N = 5: HOUSE — да, HOUSES — нет.": "Make words of exactly N letters. N = 5: HOUSE — yes, HOUSES — no.",
+    "Составить слова из N букв и длиннее. N = 5: HOUSE и HOUSES — да, CAT — нет.": "Make words of N letters or longer. N = 5: HOUSE and HOUSES — yes, CAT — no.",
+    "Разбить камни на поле взрывами шаров и звёздами. Без камней на сцене задание не сдвинется — задайте камни уровня.": "Break stones on the field with ball blasts and stars. Without stones on the scene the task won't move — set the level's stones.",
+    "Слово ровно из M букв, где одна буква встречается N раз и больше. M 6, N 3: BANANA, CHEESE — да; APPLES — нет.": "A word of exactly M letters where one letter appears N times or more. M 6, N 3: BANANA, CHEESE — yes; APPLES — no.",
+    "Слово, где две одинаковые буквы стоят рядом: BOOK, APPLE — да; BANANA — нет.": "A word with two same letters side by side: BOOK, APPLE — yes; BANANA — no.",
+    "Слово любой длины, где одна буква встречается N раз и больше. N 3: BANANA, EERIE — да; APPLE — нет.": "A word of any length where one letter appears N times or more. N 3: BANANA, EERIE — yes; APPLE — no.",
+    "Слово, где гласных (A E I O U) N и больше: N 3 — BANANA, AUDIO — да.": "A word with N or more vowels (A E I O U): N 3 — BANANA, AUDIO — yes.",
+    "Нет": "None", "Первое слово: шары и Confirm": "First word: balls and Confirm", "Синергия соседних шаров": "Synergy of touching balls",
+    "Нажать бустер": "Tap a booster", "Кнопка «Новые буквы»": "“New letters” button", "Слияние шаров": "Ball merge",
+    "Шар-джокер *": "Wildcard ball *", "Шар !": "Ball !", "Кнопка вызова *": "Call * button",
+    "Задание «Использовать букву»": "Task “Use a letter”", "Задание «Слово с повтором буквы»": "Task “Word with a repeated letter”",
+    "Задание «Слово с двойной буквой»": "Task “Word with a double letter”", "Задание «Слово с N гласными»": "Task “Word with N vowels”",
+    "Задание «Слово с N одинаковыми буквами»": "Task “Word with N same letters”",
+    "Своего обучения нет. Если на этом уровне открывается способность (список открытий), идёт её обучение.": "No own tutorial. If an ability unlocks on this level (unlock list), its tutorial runs.",
+    "Самое первое обучение (уровень 1). Сначала окно задания, потом палец по очереди показывает шары слова и кнопку Confirm.": "The very first tutorial (level 1). First the task window, then the finger shows the word's balls one by one and the Confirm button.",
+    "Слово из шаров, которые касаются друг друга: показывает бонус синергии, затем Confirm.": "A word from balls that touch each other: shows the synergy bonus, then Confirm.",
+    "Открывает окно бустеров, палец нажимает бустер (бесплатно). Какой бустер — по способности, которая открывается на этом уровне: «Длинное слово», x2 или «Очистка поля».": "Opens the booster window, the finger taps a booster (free). Which booster — by the ability unlocked on this level: “Longest word”, x2 or “Clear field”.",
+    "Палец нажимает помощника «Новые буквы», затем фокус идёт за каждым упавшим шаром.": "The finger taps the “New letters” helper, then the focus follows each falling ball.",
+    "Два одинаковых шара сливаются в один, показывается сумма очков. Нажимать ничего не нужно.": "Two same balls merge into one, the point sum is shown. Nothing to tap.",
+    "На поле бросается шар *, игрок собирает короткое слово, где * заменяет букву, и жмёт Confirm.": "A * ball is thrown in, the player makes a short word where * replaces a letter, and presses Confirm.",
+    "На поле бросается шар !, игрок собирает слово и ставит ! последним, затем Confirm.": "A ! ball is thrown in, the player makes a word with ! last, then Confirm.",
+    "Палец нажимает помощника «Джокер *», появляется шар *, дальше — слово с ним.": "The finger taps the “Wildcard *” helper, a * ball appears, then a word with it.",
+    "Слияние даёт шар со звездой, слово с этим шаром — звёзды летят.": "A merge gives a ball with a star; a word with that ball — the stars fly.",
+    "Показывает окно задания «Использовать букву», затем слово, где эта буква встречается один раз, и Confirm. Для уровня с этим заданием (сейчас уровень 3).": "Shows the “Use a letter” task window, then a word with that letter once, and Confirm. For a level with that task (now level 3).",
+    "Окно сразу вокруг одинаковых шаров слова, затем слово с ними. Для уровня с заданием «Слово с повтором буквы».": "A window around the word's same balls, then the word with them. For a level with the “Word with a repeated letter” task.",
+    "Когда две одинаковые буквы легли в ряд рядом, окно показывает эту пару. Для уровня с заданием «Слово с двойной буквой».": "When two same letters land side by side in the row, a window shows the pair. For a level with the “Word with a double letter” task.",
+    "Гласные шары слова подсвечиваются по одной, затем слово. Для уровня с заданием «Слово с N гласными».": "The word's vowel balls light up one by one, then the word. For a level with the “Word with N vowels” task.",
+    "Каждая выбранная одинаковая буква добавляется к окну на ряду букв. Для уровня с заданием «Слово с N одинаковыми буквами».": "Each picked same letter is added to the window on the letter row. For a level with the “Word with N same letters” task.",
+  },
+  // Шаблоны с числами и вставками: [регулярное выражение целиком, функция → перевод].
+  PATTERNS: [
+    [/^Уровень (\d+)$/, (m) => `Level ${m[1]}`], [/^уровень (\d+)$/, (m) => `level ${m[1]}`],
+    [/^уровень (\d+) \(новый\)$/, (m) => `level ${m[1]} (new)`], [/^Подуровень (\d+)$/, (m) => `Sub-level ${m[1]}`],
+    [/^подуровень (\d+)$/, (m) => `sub-level ${m[1]}`], [/^задание (\d+)$/, (m) => `task ${m[1]}`],
+    [/^открытие (\d+)$/, (m) => `unlock ${m[1]}`], [/^бонусный уровень (\d+)$/, (m) => `bonus level ${m[1]}`],
+    [/^награда (\d+)$/, (m) => `reward ${m[1]}`], [/^Клетка (\d+)$/, (m) => `Slot ${m[1]}`],
+    [/^ошибка (\d+)$/, (m) => `error ${m[1]}`], [/^с уровня (\d+)$/, (m) => `from level ${m[1]}`],
+    [/^после уровня (\d+)$/, (m) => `after level ${m[1]}`], [/^игрок берёт (\d+) из (\d+)$/, (m) => `player picks ${m[1]} of ${m[2]}`],
+    [/^открывается за (\d+) ★$/, (m) => `unlocks at ${m[1]} ★`], [/^\+ Вставить уровень после (\d+)$/, (m) => `+ Insert level after ${m[1]}`],
+    [/^Бонусный уровень после уровня (\d+)$/, (m) => `Bonus level after level ${m[1]}`],
+    [/^— не игровой уровень: игрок выбирает награды из (\d+) клеток\.$/, (m) => `— not a gameplay level: the player picks rewards from ${m[1]} slots.`],
+    [/^Набрать (.+) очков$/, (m) => `Score ${m[1]} points`], [/^Буква (.+) × (.+)$/, (m) => `Letter ${m[1]} × ${m[2]}`],
+    [/^Слово из (.+?)(\+?) букв$/, (m) => `Word of ${m[1]}${m[2]} letters`], [/^(\d+) слова из (.+?)(\+?) букв$/, (m) => `${m[1]} words of ${m[2]}${m[3]} letters`],
+    [/^Разбить (.+) камней$/, (m) => `Break ${m[1]} stones`], [/^ассет (.+) \(без типа\)$/, (m) => `asset ${m[1]} (no type)`],
+    [/^(.+) ⧉$/, (m) => `${I18N.tr(m[1])} ⧉`], [/^(\d+) монет$/, (m) => `${m[1]} coins`], [/^Жизни ∞ (\d+) мин$/, (m) => `Lives ∞ ${m[1]} min`],
+    [/^(\S+) \((\d+) камн\.\)(.*)$/, (m) => `${m[1]} (${m[2]} stones)${m[3]}`], [/^(.+) — уже есть$/, (m) => `${m[1]} — already added`],
+    [/^Статус · открытия и бонусы:$/, () => "Status · unlocks and bonuses:"],
+    [/^На карте меню (\d+) уровней \(MenuMapConfig → Level Count\), уровни после (\d+) на ней не видны\.$/,
+      (m) => `The menu map shows ${m[1]} levels (MenuMapConfig → Level Count); levels after ${m[2]} are not on it.`],
+    [/^После уровня (\d+) уже есть бонусный уровень$/, (m) => `Level ${m[1]} already has a bonus level after it`],
+    [/^Бонусный уровень — после уровня (\d+)\. Перетащите его ⠿ на нужное место\.$/, (m) => `Bonus level — after level ${m[1]}. Drag it ⠿ to the right place.`],
+    [/^Убрать бонусный уровень после уровня (\d+)\?$/, (m) => `Remove the bonus level after level ${m[1]}?`],
+    [/^Удалить подуровень (\d+)\? В префабе он удалится вместе с цепью и доской \(Unity спросит ещё раз\)\.$/,
+      (m) => `Delete sub-level ${m[1]}? In the prefab it is removed with its chain and board (Unity will ask again).`],
+    [/^Не получилось: (.+)$/, (m) => `Failed: ${I18N.tr(m[1])}`], [/^Конфликт · (.+)$/, (m) => `Conflict · ${I18N.tr(m[1])}`],
+    [/^синхронизация (.+)$/, (m) => `synced ${m[1]}`], [/^не отправлено: (\d+)$/, (m) => `not sent: ${m[1]}`],
+    [/^удалено уровней: (\d+)$/, (m) => `levels deleted: ${m[1]}`], [/^конфликтов: (\d+) — решите их выше$/, (m) => `conflicts: ${m[1]} — resolve them above`],
+    [/^и ещё (\d+)$/, (m) => `and ${m[1]} more`],
+    [/^уровень (\d+) здесь — (\d+) на GitHub$/, (m) => `level ${m[1]} here — ${m[2]} on GitHub`],
+    [/^уровень (\d+) удалён на GitHub — здесь остался \(удалить можно в Unity\)$/, (m) => `level ${m[1]} was deleted on GitHub — kept here (delete it in Unity)`],
+    [/^на GitHub у (\S+) не было своего ID — он новый уровень$/, (m) => `${m[1]} on GitHub had no ID of its own — it is a new level`],
+    [/^Получено с GitHub: (.+)$/, (m) => `Pulled from GitHub: ${I18N.parts(m[1])}`], [/^взято: (.+)$/, (m) => `taken: ${I18N.parts(m[1], ", ")}`],
+    [/^Отправлено на GitHub: (.+)$/, (m) => `Pushed to GitHub: ${I18N.tr(m[1])}`],
+    [/^(Телефон|Unity): (.+)$/, (m) => `${m[1] === "Телефон" ? "Phone" : "Unity"}: ${I18N.parts(m[2])}`],
+    [/^уровни? (.+)$/, (m) => `level${m[0].startsWith("уровни") ? "s" : ""} ${m[1].replace(/ \(новый\)/g, " (new)")}`],
+    [/^(.+)\. Отправка остановлена: разберите конфликты и отправьте снова$/, (m) => `${I18N.tr(m[1])}. Push stopped: resolve the conflicts and push again`],
+    [/^(.+): взята версия GitHub$/, (m) => `${I18N.tr(m[1])}: took the GitHub version`],
+    [/^(.+): оставлена своя — уйдёт при «Отправить»$/, (m) => `${I18N.tr(m[1])}: kept yours — it goes with “Push”`],
+    [/^(.+): оставлена своя$/, (m) => `${I18N.tr(m[1])}: kept yours`],
+    [/^Нет прав \(403\): токену нужен доступ к (\S+), Contents — Read and write(.*)$/, (m) => `No permission (403): the token needs access to ${m[1]}, Contents — Read and write${m[2]}`],
+    [/^Не найдено \(404\): репозиторий (\S+) или ветка «(.+)» — или у токена нет к ним доступа$/, (m) => `Not found (404): repository ${m[1]} or branch “${m[2]}” — or the token has no access to them`],
+    [/^Репозиторий (\S+) пустой — создайте его с README$/, (m) => `Repository ${m[1]} is empty — create it with a README`],
+    [/^GitHub ответил (\d+)(.*)$/, (m) => `GitHub answered ${m[1]}${m[2]}`],
+    [/^(\S+): нет "id"$/, (m) => `${m[1]}: no "id"`], [/^(\S+): такой же "id", как у другого файла$/, (m) => `${m[1]}: same "id" as another file`],
+    [/^нет места: уровней (\d+)$/, (m) => `no such place: ${m[1]} levels`],
+    // проверки уровня (Unity LevelConfig.Validate и levelIssues страницы)
+    [/^подуровень (\d+): нет заданий$/, (m) => `sub-level ${m[1]}: no tasks`],
+    [/^подуровень (\d+): у задания в списке не выбран тип$/, (m) => `sub-level ${m[1]}: a task in the list has no type`],
+    [/^камней (\d+) при (\d+) объектах на старте — шаров на старте не будет$/, (m) => `${m[1]} stones with ${m[2]} objects at start — no balls at start`],
+    [/^камней (\d+) при лимите объектов (\d+) — шаров на старте не будет$/, (m) => `${m[1]} stones with an object limit of ${m[2]} — no balls at start`],
+    [/^на старте (\d+) объектов при лимите (\d+) — стартовый бросок урежется до лимита \(шаров меньше\)$/, (m) => `${m[1]} objects at start with a limit of ${m[2]} — the start throw is cut to the limit (fewer balls)`],
+    [/^стартовое слово «(.+)» повторяется$/, (m) => `start word “${m[1]}” is repeated`],
+    [/^стартовые слова — (\d+) (буква|буквы|букв), а шаров в стартовом броске (\d+): не все буквы будут на сцене сразу$/,
+      (m) => `start words have ${m[1]} letter${m[1] === "1" ? "" : "s"}, but the start throw has ${m[3]} balls: not all letters will be on scene at once`],
+    [/^(Бустер|Помощник)( «(.+)»)? × (\d+)$/, (m) => `${I18N.tr(m[1])}${m[3] ? ` “${I18N.tr(m[3])}”` : ""} × ${m[4]}`],
+    [/^(.+) \(файлов изменено: (\d+)\)$/, (m) => `${I18N.tr(m[1])} (files changed: ${m[2]})`],
+    [/^конфликтов: (\d+) — Tools → Levels → GitHub → Настройки или страница уровней$/, (m) => `conflicts: ${m[1]} — Tools → Levels → GitHub → Settings, or the levels page`],
+    [/^конфликтов: (\d+)(.*)$/, (m) => `conflicts: ${m[1]}${m[2]}`],
+    // различия по полям: «поле: здесь → GitHub»
+    [/^(.+?): (.*) → (.*)$/, (m) => `${I18N.tr(m[1])}: ${I18N.value(m[2])} → ${I18N.value(m[3])}`],
+  ],
+
+  tr(text) {
+    if (I18N.lang === "ru" || !text || !/[А-Яа-яЁё]/.test(text)) return text;
+    const lead = text.match(/^\s*/)[0], trail = text.match(/\s*$/)[0];
+    const core = text.trim();
+    const done = I18N.core(core);
+    return done === null ? text : lead + done + trail;
+  },
+  core(s) {
+    if (Object.prototype.hasOwnProperty.call(I18N.EXACT, s)) return I18N.EXACT[s];
+    // Сначала части (шаблон с «(.+)» иначе съел бы соседние), потом шаблоны.
+    for (const sep of [" · ", "; "]) if (s.includes(sep)) return s.split(sep).map((p) => I18N.tr(p)).join(sep);
+    for (const [re, fn] of I18N.PATTERNS) { const m = re.exec(s); if (m) return fn(m); }
+    if (s.endsWith("…") && s.length > 1) { const r = I18N.core(s.slice(0, -1)); if (r !== null) return r + "…"; }
+    // Перечень через запятую (награды бонусного уровня) — только если переводится каждая часть.
+    if (s.includes(", ")) {
+      const parts = s.split(", ").map((p) => (/[А-Яа-яЁё]/.test(p) ? I18N.core(p) : p));
+      if (parts.every((p) => p !== null)) return parts.join(", ");
+    }
+    return null;
+  },
+  parts(s, sep) { return s.split(sep || "; ").map((p) => (sep ? I18N.tr(p) : I18N.parts(p, ", "))).join(sep || "; "); },
+  value(v) { return v === "нет" ? "none" : v === "есть" ? "present" : v; },
+
+  // DOM: исходный русский текст помнится у узла — смена языка в обе стороны без перерисовки.
+  ORIG: new WeakMap(),
+  ATTRS: ["title", "placeholder", "label"],
+  text(node) {
+    const p = node.parentNode;
+    if (!p || p.nodeName === "SCRIPT" || p.nodeName === "STYLE") return;
+    const known = I18N.ORIG.get(node);
+    const ru = known && known.shown === node.nodeValue ? known.ru : node.nodeValue;
+    const shown = I18N.tr(ru);
+    I18N.ORIG.set(node, { ru, shown });
+    if (node.nodeValue !== shown) node.nodeValue = shown;
+  },
+  attrs(el) {
+    let known = I18N.ORIG.get(el);
+    for (const a of I18N.ATTRS) {
+      if (!el.hasAttribute(a)) continue;
+      known = known || {};
+      const cur = el.getAttribute(a), k = known[a];
+      const ru = k && k.shown === cur ? k.ru : cur;
+      const shown = I18N.tr(ru);
+      known[a] = { ru, shown };
+      if (cur !== shown) el.setAttribute(a, shown);
+    }
+    if (known) I18N.ORIG.set(el, known);
+  },
+  walk(root) {
+    if (root.nodeType === 3) { I18N.text(root); return; }
+    if (root.nodeType !== 1) return;
+    I18N.attrs(root);
+    const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+    for (let n = w.nextNode(); n; n = w.nextNode()) n.nodeType === 3 ? I18N.text(n) : I18N.attrs(n);
+  },
+  set(lang) {
+    I18N.lang = lang === "en" ? "en" : "ru";
+    try { localStorage.setItem("level-editor.lang", I18N.lang); } catch { /* приватный режим — только на сейчас */ }
+    document.documentElement.lang = I18N.lang;
+    I18N.walk(document.documentElement);
+    const btn = document.getElementById("lang-btn");
+    if (btn) btn.textContent = I18N.lang === "ru" ? "EN" : "RU";
+  },
+  init() {
+    let saved = null;
+    try { saved = localStorage.getItem("level-editor.lang"); } catch { /* нет хранилища */ }
+    I18N.lang = saved === "en" || saved === "ru" ? saved : "ru";
+    new MutationObserver((records) => {
+      for (const r of records) {
+        if (r.type === "characterData") I18N.text(r.target);
+        else if (r.type === "attributes") I18N.attrs(r.target);
+        else for (const n of r.addedNodes) I18N.walk(n);
+      }
+    }).observe(document.documentElement, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: I18N.ATTRS });
+    const nativeConfirm = window.confirm.bind(window);
+    window.confirm = (message) => nativeConfirm(I18N.tr(message));
+    I18N.set(I18N.lang);
+  },
+};
+I18N.init();
+
 // ───────────────────────── данные ─────────────────────────
 // Уровень L: key «L3», n, file, hash, server, draft, issues, messages, status, dirty, saving, version, timer, conflict, error.
 // Развитие игры P (Progression.json): unlocks (открытия способностей) и bonusLevels (бонусные уровни-награды) — один файл.
@@ -180,6 +499,7 @@ const S = {
   levels: new Map(),
   prog: null,
   open: new Set(),      // раскрытые: «L3», «B5» (бонусный после уровня 5)
+  help: new Set(),      // открытые «?» у выбора задания / обучения: id их списка
   filter: "all",
   online: null,
   playing: false,
@@ -225,6 +545,53 @@ async function api(method, url, body) {
 }
 
 function taskType(name) { return (S.state?.taskTypes || []).find((t) => t.type === name); }
+
+// ── Выбор задания и обучения: название, пояснение, «?» со всеми вариантами ──
+// Пояснения — из schema.json / Unity (LockTaskMenu → Hint, LevelTutorialKind → [InspectorName] + [ChoiceHint]);
+// старый schema.json без них — названия как раньше, пояснений нет.
+function tutorialChoices() {
+  const info = S.state?.tutorialInfo || [];
+  return (S.state?.tutorials || []).map((name) => {
+    const i = info.find((x) => x.name === name);
+    return { value: name, title: i?.title || (name === "None" ? "Нет" : name), hint: i?.hint || "" };
+  });
+}
+function taskChoices() {
+  return (S.state?.taskTypes || []).map((t) => {
+    const path = String(t.menu || t.type).split("/");
+    return { value: t.type, title: path.pop(), group: path.join("/"), hint: t.hint || "", path: t.menu || t.type };
+  }).sort((a, b) => (!!a.group - !!b.group) || a.path.localeCompare(b.path, "ru")); // без группы — первыми
+}
+// <option>; подряд идущие варианты одной группы — в <optgroup>.
+function choiceOptions(items, current) {
+  let html = "", group = null;
+  for (const i of items) {
+    const g = i.group || "";
+    if (g !== group) { if (group) html += "</optgroup>"; if (g) html += `<optgroup label="${esc(g)}">`; group = g; }
+    html += `<option value="${esc(i.value)}" ${i.value === current ? "selected" : ""} ${i.hint ? `title="${esc(i.hint)}"` : ""}>${esc(i.title)}</option>`;
+  }
+  if (group) html += "</optgroup>";
+  return html;
+}
+function helpBtn(target) {
+  return `<button type="button" class="help-btn ${S.help.has(target) ? "on" : ""}" data-action="help" data-help="${esc(target)}" title="Что это такое — все варианты с пояснением">?</button>`;
+}
+function hintHtml(items, current) {
+  const hint = items.find((i) => i.value === current)?.hint;
+  return hint ? `<div class="hint">${esc(hint)}</div>` : "";
+}
+// Все варианты с пояснением; нажатие выбирает вариант в списке target (как обычный выбор — событие change).
+function choiceList(target, items, current) {
+  if (!S.help.has(target)) return "";
+  let html = "", group = null;
+  for (const i of items) {
+    const g = i.group || "";
+    if (g !== group) { if (g) html += `<h5>${esc(g)}</h5>`; group = g; }
+    html += `<button type="button" class="choice ${i.value === current ? "on" : ""}" data-action="pick" data-target="${esc(target)}" data-value="${esc(i.value)}">
+      <b>${esc(i.title)}</b>${i.hint ? `<span>${esc(i.hint)}</span>` : ""}</button>`;
+  }
+  return `<div class="choices"><div class="hint" style="margin:0 8px 2px">Нажмите вариант, чтобы выбрать его.</div>${html}</div>`;
+}
 function regular() { return [...S.levels.values()].filter((L) => L.draft).sort((a, b) => a.n - b.n); }
 function levelCount() { return regular().length; }
 function unlocks() { return S.prog?.draft?.unlocks || []; }
@@ -462,6 +829,10 @@ function describeTask(t) {
     case "ExactLengthWordTask": text = `${s._words > 1 ? s._words + " слова" : "Слово"} из ${s._letters} букв`; break;
     case "MinLengthWordTask": text = `${s._words > 1 ? s._words + " слова" : "Слово"} из ${s._letters}+ букв`; break;
     case "DestroyStonesTask": text = `Разбить ${s._stones} камней`; break;
+    case "RepeatLetterWordTask": text = `${s._words > 1 ? s._words + " слова" : "Слово"} из ${s._length} букв, ${s._repeats} одинаковых`; break;
+    case "DoubleLetterWordTask": text = `${s._words > 1 ? s._words + " слова" : "Слово"} с двойной буквой`; break;
+    case "SameLettersWordTask": text = `${s._words > 1 ? s._words + " слова" : "Слово"} с ${s._repeats} одинаковыми буквами`; break;
+    case "VowelsWordTask": text = `${s._words > 1 ? s._words + " слова" : "Слово"} с ${s._vowels}+ гласными`; break;
     default: text = (taskType(t.type)?.menu || t.type).split("/").pop();
   }
   return t.asset ? `${text} ⧉` : text;
@@ -528,18 +899,21 @@ function unlockHtml(u) {
   const used = new Set(unlocks().filter((x) => x !== u).map((x) => x.feature));
   const options = (S.state.features || []).map((f) =>
     `<option value="${esc(f.feature)}" ${f.feature === u.feature ? "selected" : ""} ${used.has(f.feature) ? "disabled" : ""}>${esc(f.title)}${used.has(f.feature) ? " — уже есть" : ""}</option>`).join("");
-  const tutorials = (S.state.tutorials || []).map((t) => `<option value="${esc(t)}" ${t === u.tutorial ? "selected" : ""}>${t === "None" ? "без обучения" : esc(t)}</option>`).join("");
+  const tutorials = tutorialChoices().map((t) => (t.value === "None" ? { ...t, title: "без обучения" } : t));
+  const tid = `tut-U-${u.feature}`;
+  const tutHint = tutorials.find((t) => t.value === u.tutorial)?.hint || "Обучение на уровне открытия";
   const beyond = u.level > levelCount() ? ' <span class="muted">(такого уровня ещё нет)</span>' : "";
+  const help = choiceList(tid, tutorials, u.tutorial);
   return `<div class="line unlock seq" data-seq="unlock" data-feature="${esc(u.feature)}" id="unlock-${esc(u.feature)}">
     ${handle("unlock", `data-feature="${esc(u.feature)}"`)}
     <span>🔓 Открывается</span>
     <select data-action="unlock-feature" data-feature="${esc(u.feature)}" title="Какая способность">${options}</select>
     <span class="what">с уровня ${u.level}</span>${beyond}
-    <select data-action="unlock-tutorial" data-feature="${esc(u.feature)}" title="Обучение на уровне открытия">${tutorials}</select>
+    <select id="${esc(tid)}" data-action="unlock-tutorial" data-feature="${esc(u.feature)}" title="${esc(tutHint)}">${choiceOptions(tutorials, u.tutorial)}</select>${helpBtn(tid)}
     <span class="spacer"></span>
     <span class="mv"><button data-action="unlock-up" data-feature="${esc(u.feature)}" ${u.level > 1 ? "" : "disabled"} title="На уровень раньше">↑</button><button data-action="unlock-down" data-feature="${esc(u.feature)}" ${u.level <= levelCount() ? "" : "disabled"} title="На уровень позже">↓</button></span>
     <button class="small danger" data-action="unlock-delete" data-feature="${esc(u.feature)}" title="Убрать открытие">✕</button>
-  </div>`;
+  </div>${help ? `<div class="line-help">${help}</div>` : ""}`;
 }
 
 function bonusHtml(b) {
@@ -609,7 +983,6 @@ function inputOnly(L, bind, type, opts = {}) {
 
 function taskHtml(L, si, ti, t) {
   const base = `subLevels.${si}.tasks.${ti}`;
-  const types = S.state.taskTypes || [];
   const ids = `data-l="${L.key}" data-sub="${si}" data-task="${ti}"`;
   const remove = `<button class="small danger" data-action="del-task" ${ids} title="Удалить задание">✕</button>`;
   if (t.asset !== undefined) {
@@ -617,9 +990,11 @@ function taskHtml(L, si, ti, t) {
       <div class="asset">${esc(describeTask(t))} <small class="muted">— настройки в ассете задания</small>
         ${t.type ? `<button class="small" data-action="unlink-asset" ${ids}>Сделать заданием уровня</button>` : ""}</div>${remove}</div>`;
   }
-  const select = `<select data-action="task-type" ${ids} data-key="${L.key}:${base}.type">
+  const pid = `task-${L.key}-${si}-${ti}`;
+  const choices = taskChoices();
+  const select = `<div class="task-pick"><div class="pick-row"><select id="${pid}" data-action="task-type" ${ids} data-key="${L.key}:${base}.type">
       <option value="" ${!t.type ? "selected" : ""}>— тип задания —</option>
-      ${types.map((tt) => `<option value="${esc(tt.type)}" ${tt.type === t.type ? "selected" : ""}>${esc(tt.menu)}</option>`).join("")}</select>`;
+      ${choiceOptions(choices, t.type)}</select>${helpBtn(pid)}</div>${hintHtml(choices, t.type)}</div>`;
   const tt = taskType(t.type);
   let fields = "";
   if (tt) {
@@ -643,13 +1018,22 @@ function taskHtml(L, si, ti, t) {
       return `<label title="${tip}">${esc(label)}${control}</label>`;
     }).join("");
   }
-  return `<div class="task">${select}<div class="task-fields">${fields}</div>${remove}</div>`;
+  return `<div class="task">${select}<div class="task-fields">${fields}</div>${remove}${choiceList(pid, choices, t.type)}</div>`;
+}
+
+// Поле «Обучение» уровня: список с названиями, под ним — что делает выбранное, «?» — все варианты.
+function tutorialField(L) {
+  const id = `tut-${L.key}`;
+  const items = tutorialChoices();
+  const cur = L.draft.tutorial || "None";
+  return `<label class="f wide"><span>Обучение</span>
+      <span class="pick-row"><select id="${id}" data-l="${L.key}" data-bind="tutorial" data-type="select" data-key="${L.key}:tutorial">${choiceOptions(items, cur)}</select>${helpBtn(id)}</span></label>
+    ${hintHtml(items, cur)}${choiceList(id, items, cur)}`;
 }
 
 function editorHtml(L) {
   const d = L.draft;
   const tiers = (S.state.tiers || []).map((t) => [t, t || "по умолчанию (LevelProgression)"]);
-  const tutorials = (S.state.tutorials || []).map((t) => [t, t === "None" ? "нет" : t]);
   const orders = (S.state.orders || []).map((o) => [o, ORDER_NAMES[o] || o]);
   const subs = (d.subLevels || []).map((s, si) => `
     <div class="sublevel">
@@ -694,7 +1078,7 @@ function editorHtml(L) {
         <label class="f"><span>Сложность слов 0–1<small>от – до</small></span><span class="pair">
           ${inputOnly(L, "wordDifficulty.0", "float", { step: "0.05", min: 0, max: 1 })}${inputOnly(L, "wordDifficulty.1", "float", { step: "0.05", min: 0, max: 1 })}</span></label>
         ${field(L, "Стартовые слова", "startWords", "words", { wide: true })}
-        ${field(L, "Обучение", "tutorial", "select", { options: tutorials })}
+        ${tutorialField(L)}
         ${field(L, "Слово обучения", "tutorialWord", "str")}
       </fieldset>
     </div>
@@ -951,6 +1335,19 @@ document.addEventListener("click", (e) => {
       document.querySelectorAll("#filters button").forEach((x) => x.classList.toggle("on", x === el));
       render(); return;
     case "collapse": S.open.clear(); render(); return;
+    case "help": {
+      const id = el.dataset.help;
+      S.help.has(id) ? S.help.delete(id) : S.help.add(id);
+      render(); return;
+    }
+    case "pick": {
+      // Вариант из списка «?» — как выбор в самом списке: тот же обработчик change.
+      const sel = document.getElementById(el.dataset.target);
+      S.help.delete(el.dataset.target);
+      if (sel && sel.value !== el.dataset.value) { sel.value = el.dataset.value; sel.dispatchEvent(new Event("change", { bubbles: true })); }
+      else render();
+      return;
+    }
     case "add-level": insertLevel(levelCount()); return;
     case "add-bonus": addBonus(); return;
     case "add-unlock": addUnlock(); return;
@@ -998,6 +1395,7 @@ document.addEventListener("click", (e) => {
     case "gh-resolve": ghRun("/api/github/resolve", { key: el.dataset.key, choice: el.dataset.choice }); return;
     case "gh-settings": GH.form = !GH.form; renderGhForm(); return;
     case "gh-save": ghSaveSettings(); return;
+    case "lang": I18N.set(I18N.lang === "ru" ? "en" : "ru"); return;
     case "reload-page": flushSaves().finally(() => location.reload()); return;
   }
   if (!L || !L.draft || L.kind !== "level") return;
