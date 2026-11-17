@@ -1,0 +1,41 @@
+{
+  "level": 15,
+  "id": "ee1c82fa8f3d4af2843fa1d94ef37127",
+  "hard": true,
+  "steps": 15,
+  "coins": 60,
+  "threeStarScore": 800,
+  "stars": [
+    200,
+    375,
+    500
+  ],
+  "startObjects": 30,
+  "stones": 3,
+  "maxObjects": 0,
+  "wordTier": "B1",
+  "wordDifficulty": [
+    0.2,
+    0.7
+  ],
+  "startWords": [
+    "STAR"
+  ],
+  "tutorial": "None",
+  "tutorialWord": "",
+  "subLevels": [
+    {
+      "id": "",
+      "order": "Together",
+      "tasks": [
+        {
+          "type": "ScorePointsTask",
+          "settings": {
+            "_points": 25,
+            "_text": "Score {0} points"
+          }
+        }
+      ]
+    }
+  ]
+}
