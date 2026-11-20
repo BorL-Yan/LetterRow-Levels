@@ -2,21 +2,21 @@
   "level": 2,
   "id": "8d99edbf62084b3895766df772bee03b",
   "hard": false,
-  "steps": 10,
+  "steps": 35,
   "coins": 0,
-  "threeStarScore": 300,
+  "threeStarScore": 450,
   "stars": [
-    120,
-    225,
-    300
+    200,
+    375,
+    500
   ],
   "startObjects": 30,
   "stones": 0,
   "maxObjects": 0,
   "wordTier": "A1",
   "wordDifficulty": [
-    0.0,
-    0.1
+    0.1,
+    0.2
   ],
   "startWords": [],
   "tutorial": "None",
@@ -27,13 +27,28 @@
       "order": "Together",
       "tasks": [
         {
+          "type": "UseLetterTask",
+          "settings": {
+            "_letter": "E",
+            "_times": 3,
+            "_text": "Use letter {0} {1} times",
+            "_minOnScene": 3,
+            "_maxOnScene": 0
+          }
+        },
+        {
           "type": "ScorePointsTask",
           "settings": {
-            "_points": 50,
+            "_points": 350,
             "_text": "Score {0} points"
           }
         }
       ]
+    },
+    {
+      "id": "",
+      "order": "Together",
+      "tasks": []
     }
   ],
   "prefab": "Assets/Prefabs/Game/Levels/Level_02.prefab",
