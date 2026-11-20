@@ -16,7 +16,7 @@
   "wordTier": "A1",
   "wordDifficulty": [
     0.1,
-    0.2
+    0.3
   ],
   "startWords": [],
   "tutorial": "None",
@@ -29,10 +29,26 @@
         {
           "type": "UseLetterTask",
           "settings": {
-            "_letter": "E",
+            "_letter": "A",
             "_times": 3,
             "_text": "Use letter {0} {1} times",
             "_minOnScene": 3,
+            "_maxOnScene": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "",
+      "order": "Together",
+      "tasks": [
+        {
+          "type": "UseLetterTask",
+          "settings": {
+            "_letter": "E",
+            "_times": 5,
+            "_text": "Use letter {0} {1} times",
+            "_minOnScene": 0,
             "_maxOnScene": 0
           }
         },
@@ -44,11 +60,6 @@
           }
         }
       ]
-    },
-    {
-      "id": "",
-      "order": "Together",
-      "tasks": []
     }
   ],
   "prefab": "Assets/Prefabs/Game/Levels/Level_02.prefab",
