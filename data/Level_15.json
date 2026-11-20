@@ -38,11 +38,6 @@
           }
         }
       ]
-    },
-    {
-      "id": "273ff6df71444841bcdd82f8e7105fff",
-      "order": "Together",
-      "tasks": []
     }
   ],
   "prefab": "Assets/Prefabs/Game/Levels/Level_15.prefab",
