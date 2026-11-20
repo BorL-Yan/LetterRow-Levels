@@ -15,7 +15,7 @@
   "maxObjects": 0,
   "wordTier": "A1",
   "wordDifficulty": [
-    0.0,
+    0,
     0.3
   ],
   "startWords": [
@@ -29,10 +29,12 @@
       "order": "Together",
       "tasks": [
         {
-          "type": "ScorePointsTask",
+          "type": "MinLengthWordTask",
           "settings": {
-            "_points": 25,
-            "_text": "Score {0} points"
+            "_letters": 5,
+            "_words": 1,
+            "_text": "Make a word of {0} letters",
+            "_wordsOnScene": 0
           }
         }
       ]
