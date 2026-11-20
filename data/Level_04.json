@@ -2,9 +2,9 @@
   "level": 4,
   "id": "890e3883843a4c68a8451d35efd9c5d0",
   "hard": false,
-  "steps": 12,
+  "steps": 25,
   "coins": 0,
-  "threeStarScore": 350,
+  "threeStarScore": 1200,
   "stars": [
     140,
     262,
@@ -15,7 +15,7 @@
   "maxObjects": 0,
   "wordTier": "A1",
   "wordDifficulty": [
-    0.0,
+    0,
     0.1
   ],
   "startWords": [
@@ -29,30 +29,20 @@
       "order": "Together",
       "tasks": [
         {
-          "type": "UseLetterTask",
+          "type": "ScorePointsTask",
           "settings": {
-            "_letter": "E",
-            "_times": 3,
-            "_text": "Use letter {0} {1} times",
-            "_minOnScene": 0,
-            "_maxOnScene": 0
+            "_points": 750,
+            "_text": "Score {0} points"
           }
         },
         {
           "type": "UseLetterTask",
           "settings": {
             "_letter": "A",
-            "_times": 2,
+            "_times": 7,
             "_text": "Use letter {0} {1} times",
             "_minOnScene": 0,
             "_maxOnScene": 0
-          }
-        },
-        {
-          "type": "ScorePointsTask",
-          "settings": {
-            "_points": 70,
-            "_text": "Score {0} points"
           }
         }
       ]
