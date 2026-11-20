@@ -15,7 +15,7 @@
   "maxObjects": 0,
   "wordTier": "A1",
   "wordDifficulty": [
-    0,
+    0.0,
     0.3
   ],
   "startWords": [
@@ -23,6 +23,7 @@
   ],
   "tutorial": "None",
   "tutorialWord": "",
+  "subLevelTutorials": [],
   "subLevels": [
     {
       "id": "fca9dc10e31543fd8870d384f1916b19",
@@ -40,6 +41,6 @@
       ]
     }
   ],
-  "prefab": "Assets/Prefabs/Game/Levels/Level_06.prefab",
-  "config": "Assets/Resources/Levels/Level_06.asset"
+  "prefab": "Assets/Prefabs/Game/Levels/Level_05.prefab",
+  "config": "Assets/Resources/Levels/Level_05.asset"
 }

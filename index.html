@@ -112,6 +112,12 @@ input:focus, select:focus, textarea:focus { outline: 2px solid color-mix(in srgb
 .help-btn { flex: none; width: 22px; height: 22px; padding: 0; border-radius: 50%; font-size: 12px; font-weight: 700; line-height: 20px; }
 .help-btn.on { background: var(--accent); color: #fff; border-color: var(--accent); }
 .hint { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.35; }
+/* Обучение подуровней (Tutorial_Plan.md §11): запись — подуровень, обучение с «?», слово. */
+.subtuts { margin-top: 10px; font-size: 13px; }
+.subtuts-head small { color: var(--muted); display: block; font-size: 11px; }
+.subtut { display: grid; gap: 4px; padding: 6px 0; border-top: 1px dashed var(--line); margin-top: 6px; }
+.subtut select.subtut-n { width: auto; }
+.subtuts > button { margin-top: 6px; }
 .asset .help-btn { vertical-align: middle; }
 /* Окно «?»: что выбрано и что это делает, ниже — все варианты. */
 .modal-back[hidden] { display: none; }
@@ -251,6 +257,12 @@ const I18N = {
     "Лимит объектов": "Object limit", "0 — без лимита": "0 — no limit", "Слова": "Words", "Сложность (A1–B2)": "Difficulty (A1–B2)",
     "Сложность слов 0–1": "Word difficulty 0–1", "от – до": "from – to", "Стартовые слова": "Start words", "Обучение": "Tutorial",
     "Слово обучения": "Tutorial word", "+ Подуровень": "+ Sub-level", "Переместить на №": "Move to #", "Переместить": "Move",
+    "Обучение подуровней": "Sub-level tutorials", "+ Обучение подуровня": "+ Sub-level tutorial", "Подуровень": "Sub-level",
+    "идёт, когда камера приехала к подуровню; подуровень 1 — «Обучение» выше": "runs when the camera reaches the sub-level; sub-level 1 — “Tutorial” above",
+    "Убрать обучение подуровня": "Remove sub-level tutorial", "такого нет": "no such", "— не выбрано —": "— not selected —",
+    "Обучение не выбрано — на этом подуровне ничего не покажется.": "No tutorial selected — nothing is shown on this sub-level.",
+    "Слово — пусто: подберётся само": "Word — empty: picked automatically",
+    "Слово, которое игрок собирает в обучении. Пусто — подбирается само из шаров сцены.": "The word the player builds in the tutorial. Empty — picked automatically from the scene balls.",
     "сложный уровень": "hard level", "открытие способности": "ability unlock", "бонусный уровень": "bonus level",
     "⠿ — перетащить": "⠿ — drag", "⧉ — задание-ассет": "⧉ — task asset",
     "Unity в Play Mode: ассеты меняются сразу, префабы — после выхода из Play Mode.": "Unity is in Play Mode: assets change at once, prefabs after leaving Play Mode.",
@@ -340,6 +352,8 @@ const I18N = {
     "Задание «Использовать букву»": "Task “Use a letter”", "Задание «Слово с повтором буквы»": "Task “Word with a repeated letter”",
     "Задание «Слово с двойной буквой»": "Task “Word with a double letter”", "Задание «Слово с N гласными»": "Task “Word with N vowels”",
     "Задание «Слово с N одинаковыми буквами»": "Task “Word with N same letters”",
+    "Перестановка букв в ряду": "Moving letters in the row",
+    "Палец ведёт по шарам слова, но одна буква встаёт не на своё место. Confirm — ошибка, затем подсказка «буквы можно двигать» и палец показывает, как перетащить букву на место. Слово — из задания «Найти слова», если оно идёт. Удобно поставить на подуровень с этим заданием.": "The finger leads through the word's balls, but one letter lands in the wrong place. Confirm — an error, then a hint “letters can be moved” and the finger shows how to drag the letter into place. The word comes from the “Find words” task if it is running. Handy on a sub-level with that task.",
     "Своего обучения нет. Если на этом уровне открывается способность (список открытий), идёт её обучение.": "No own tutorial. If an ability unlocks on this level (unlock list), its tutorial runs.",
     "Самое первое обучение (уровень 1). Сначала окно задания, потом палец по очереди показывает шары слова и кнопку Confirm.": "The very first tutorial (level 1). First the task window, then the finger shows the word's balls one by one and the Confirm button.",
     "Слово из шаров, которые касаются друг друга: показывает бонус синергии, затем Confirm.": "A word from balls that touch each other: shows the synergy bonus, then Confirm.",
@@ -405,6 +419,10 @@ const I18N = {
     // проверки уровня (Unity LevelConfig.Validate и levelIssues страницы)
     [/^подуровень (\d+): нет заданий$/, (m) => `sub-level ${m[1]}: no tasks`],
     [/^подуровень (\d+): у задания в списке не выбран тип$/, (m) => `sub-level ${m[1]}: a task in the list has no type`],
+    [/^обучение подуровня (\d+): такого подуровня нет \(подуровней (\d+)\)$/, (m) => `sub-level ${m[1]} tutorial: no such sub-level (${m[2]} sub-levels)`],
+    [/^обучение подуровня (\d+): не выбрано обучение$/, (m) => `sub-level ${m[1]} tutorial: no tutorial selected`],
+    [/^обучение подуровня (\d+): неизвестное обучение «(.+)» — не выбрано$/, (m) => `sub-level ${m[1]} tutorial: unknown tutorial “${m[2]}” — not selected`],
+    [/^обучение подуровней, запись (\d+)$/, (m) => `sub-level tutorials, entry ${m[1]}`],
     [/^камней (\d+) при (\d+) объектах на старте — шаров на старте не будет$/, (m) => `${m[1]} stones with ${m[2]} objects at start — no balls at start`],
     [/^камней (\d+) при лимите объектов (\d+) — шаров на старте не будет$/, (m) => `${m[1]} stones with an object limit of ${m[2]} — no balls at start`],
     [/^на старте (\d+) объектов при лимите (\d+) — стартовый бросок урежется до лимита \(шаров меньше\)$/, (m) => `${m[1]} objects at start with a limit of ${m[2]} — the start throw is cut to the limit (fewer balls)`],
@@ -563,6 +581,7 @@ const HINTS_FALLBACK = {
     DestroyStonesTask: "Разбить камни на поле взрывами шаров и звёздами. Без камней на сцене задание не сдвинется — задайте камни уровня.",
     DoubleLetterWordTask: "Слово, где две одинаковые буквы стоят рядом: BOOK, APPLE — да; BANANA — нет.",
     ExactLengthWordTask: "Составить слова ровно из N букв. N = 5: HOUSE — да, HOUSES — нет.",
+    FindWordsTask: "Найти среди шаров и составить заданные слова: CAT, SUN, TREE. Каждое слово засчитывается один раз. Список пуст — слова выбираются из слов уровня при старте (Words штук).",
     MinLengthWordTask: "Составить слова из N букв и длиннее. N = 5: HOUSE и HOUSES — да, CAT — нет.",
     RepeatLetterWordTask: "Слово ровно из M букв, где одна буква встречается N раз и больше. M 6, N 3: BANANA, CHEESE — да; APPLES — нет.",
     SameLettersWordTask: "Слово любой длины, где одна буква встречается N раз и больше. N 3: BANANA, EERIE — да; APPLE — нет.",
@@ -586,6 +605,8 @@ const HINTS_FALLBACK = {
     DoubleLetterWord: ["Задание «Слово с двойной буквой»", "Когда две одинаковые буквы легли в ряд рядом, окно показывает эту пару. Для уровня с заданием «Слово с двойной буквой»."],
     VowelsWord: ["Задание «Слово с N гласными»", "Гласные шары слова подсвечиваются по одной, затем слово. Для уровня с заданием «Слово с N гласными»."],
     SameLettersWord: ["Задание «Слово с N одинаковыми буквами»", "Каждая выбранная одинаковая буква добавляется к окну на ряду букв. Для уровня с заданием «Слово с N одинаковыми буквами»."],
+    FindWords: ["Задание «Найти слова»", "Сообщение «Найдите слово CAT» и окно вокруг шаров спрятанного слова, затем палец по шарам и Confirm — для нескольких слов задания (Tutorial Words задания или настроек обучения). Для уровня с заданием «Найти слова»."],
+    MoveLetters: ["Перестановка букв в ряду", "Палец ведёт по шарам слова, но одна буква встаёт не на своё место. Confirm — ошибка, затем подсказка «буквы можно двигать» и палец показывает, как перетащить букву на место. Слово — из задания «Найти слова», если оно идёт. Удобно поставить на подуровень с этим заданием."],
   },
 };
 
@@ -624,8 +645,14 @@ function hintHtml(items, current) {
   const hint = items.find((i) => i.value === current)?.hint;
   return hint ? `<div class="hint">${esc(hint)}</div>` : "";
 }
+// Выбор обучения подуровня: «Нет» — запись ещё не настроена (на подуровне ничего не покажется).
+function subTutorialChoices() {
+  return tutorialChoices().map((t) => (t.value === "None"
+    ? { ...t, title: "— не выбрано —", hint: "Обучение не выбрано — на этом подуровне ничего не покажется." } : t));
+}
 function helpItems(kind) {
   if (kind === "task") return taskChoices();
+  if (kind === "sub-tutorial") return subTutorialChoices();
   const items = tutorialChoices();
   return kind === "unlock-tutorial" ? items.map((t) => (t.value === "None" ? { ...t, title: "без обучения" } : t)) : items;
 }
@@ -901,6 +928,14 @@ function describeTask(t) {
     case "DoubleLetterWordTask": text = `${s._words > 1 ? s._words + " слова" : "Слово"} с двойной буквой`; break;
     case "SameLettersWordTask": text = `${s._words > 1 ? s._words + " слова" : "Слово"} с ${s._repeats} одинаковыми буквами`; break;
     case "VowelsWordTask": text = `${s._words > 1 ? s._words + " слова" : "Слово"} с ${s._vowels}+ гласными`; break;
+    case "FindWordsTask": {
+      const list = [...new Set(String(s._wordList || "").toUpperCase().split(/[\s,;]+/).filter((w) => /^[A-Z]{2,}$/.test(w)))];
+      const want = Math.max(1, s._words ?? 3);
+      if (!list.length) text = `Найти ${want} слов уровня (${s._minLength ?? 3}–${s._maxLength ?? 5} букв)`;
+      else if (want < list.length) text = `Найти ${want} из: ${list.join(", ")}`;
+      else text = `Найти слова: ${list.join(", ")}`;
+      break;
+    }
     default: text = (taskType(t.type)?.menu || t.type).split("/").pop();
   }
   return t.asset ? `${text} ⧉` : text;
@@ -1045,7 +1080,7 @@ function field(L, label, bind, type, opts = {}) {
 
 function inputOnly(L, bind, type, opts = {}) {
   const v = get(L.draft, bind);
-  return `<input data-l="${L.key}" data-bind="${bind}" data-type="${type}" data-key="${L.key}:${bind}" type="${type === "str" ? "text" : "number"}" ${opts.step ? `step="${opts.step}"` : ""} ${opts.min !== undefined ? `min="${opts.min}"` : ""} ${opts.max !== undefined ? `max="${opts.max}"` : ""} value="${esc(v)}" ${opts.title ? `title="${esc(opts.title)}"` : ""}>`;
+  return `<input data-l="${L.key}" data-bind="${bind}" data-type="${type}" data-key="${L.key}:${bind}" type="${type === "str" ? "text" : "number"}" ${opts.step ? `step="${opts.step}"` : ""} ${opts.min !== undefined ? `min="${opts.min}"` : ""} ${opts.max !== undefined ? `max="${opts.max}"` : ""} value="${esc(v)}" ${opts.title ? `title="${esc(opts.title)}"` : ""} ${opts.placeholder ? `placeholder="${esc(opts.placeholder)}"` : ""}>`;
 }
 
 function taskHtml(L, si, ti, t) {
@@ -1098,6 +1133,36 @@ function tutorialField(L) {
     ${hintHtml(items, cur)}`;
 }
 
+// Обучение подуровней (LevelConfig → Sub Level Tutorials, Tutorial_Plan.md §11): обучение идёт, когда камера приехала
+// к выбранному подуровню. Видно, когда у уровня 2+ подуровня (или в списке что-то осталось — подуровни удалили).
+// Запись — какой подуровень (с 2: на первом — «Обучение» уровня), какое обучение, слово.
+function subLevelTutorialsField(L) {
+  const d = L.draft;
+  const count = (d.subLevels || []).length;
+  const list = d.subLevelTutorials || [];
+  if (count < 2 && !list.length) return "";
+  const items = subTutorialChoices();
+  const rows = list.map((e, i) => {
+    const id = `subtut-${L.key}-${i}`;
+    const n = e.subLevel | 0;
+    const nums = [];
+    for (let k = 2; k <= count; k++) nums.push(k);
+    if (!nums.includes(n)) nums.push(n);
+    const opts = nums.map((k) => `<option value="${k}" ${k === n ? "selected" : ""}>${k > count || k < 2 ? `Подуровень ${k} · такого нет` : `Подуровень ${k}`}</option>`).join("");
+    const cur = e.tutorial || "None";
+    const bind = `subLevelTutorials.${i}`;
+    return `<div class="subtut">
+      <div class="pick-row"><select class="subtut-n" data-l="${L.key}" data-bind="${bind}.subLevel" data-type="int" data-key="${L.key}:${bind}.subLevel">${opts}</select>
+        <span class="spacer"></span><button class="small danger" data-action="del-subtut" data-l="${L.key}" data-i="${i}" title="Убрать обучение подуровня">✕</button></div>
+      <div class="pick-row"><select id="${id}" data-l="${L.key}" data-bind="${bind}.tutorial" data-type="select" data-key="${L.key}:${bind}.tutorial">${choiceOptions(items, cur)}</select>${helpBtn("sub-tutorial", id)}</div>
+      ${hintHtml(items, cur)}
+      ${inputOnly(L, `${bind}.word`, "str", { placeholder: "Слово — пусто: подберётся само", title: "Слово, которое игрок собирает в обучении. Пусто — подбирается само из шаров сцены." })}
+    </div>`;
+  }).join("");
+  return `<div class="subtuts"><div class="subtuts-head">Обучение подуровней<small>идёт, когда камера приехала к подуровню; подуровень 1 — «Обучение» выше</small></div>
+    ${rows}<button class="small" data-action="add-subtut" data-l="${L.key}">+ Обучение подуровня</button></div>`;
+}
+
 function editorHtml(L) {
   const d = L.draft;
   const tiers = (S.state.tiers || []).map((t) => [t, t || "по умолчанию (LevelProgression)"]);
@@ -1147,6 +1212,7 @@ function editorHtml(L) {
         ${field(L, "Стартовые слова", "startWords", "words", { wide: true })}
         ${tutorialField(L)}
         ${field(L, "Слово обучения", "tutorialWord", "str")}
+        ${subLevelTutorialsField(L)}
       </fieldset>
     </div>
     <div class="subs">${subs}</div>
@@ -1477,7 +1543,24 @@ document.addEventListener("click", (e) => {
     case "add-sub": d.subLevels.push({ id: "", order: "Together", tasks: [] }); break;
     case "del-sub":
       if (!confirm(`Удалить подуровень ${si + 1}? В префабе он удалится вместе с цепью и доской (Unity спросит ещё раз).`)) return;
-      d.subLevels.splice(si, 1); break;
+      d.subLevels.splice(si, 1);
+      // Обучения подуровней едут вместе с подуровнями: удалённого — убираются, следующих — номер на 1 меньше
+      // (на первый не встают: там «Обучение» уровня).
+      if (d.subLevelTutorials) d.subLevelTutorials = d.subLevelTutorials
+        .filter((t) => t.subLevel !== si + 1)
+        .map((t) => (t.subLevel > si + 1 ? { ...t, subLevel: t.subLevel - 1 } : t))
+        .filter((t) => t.subLevel >= 2);
+      break;
+    case "add-subtut": {
+      // Новое — на первый подуровень (с 2) без своего обучения; все заняты — на последний.
+      const list = d.subLevelTutorials || (d.subLevelTutorials = []);
+      const used = new Set(list.map((t) => t.subLevel));
+      let n = 2;
+      while (n < d.subLevels.length && used.has(n)) n++;
+      list.push({ subLevel: n, tutorial: "None", word: "" });
+      break;
+    }
+    case "del-subtut": (d.subLevelTutorials || []).splice(+el.dataset.i, 1); break;
     case "add-task": {
       const first = (S.state.taskTypes || [])[0];
       d.subLevels[si].tasks.push(first ? { type: first.type, settings: clone(first.defaults) } : { type: "" });
@@ -1633,6 +1716,7 @@ const Sync = {
     _maxOnScene: "На сцене не больше", _wordsOnScene: "Готовых слов на сцене", type: "Тип", unlocks: "открытие",
     bonusLevels: "бонусный уровень", rewards: "награда", level: "С уровня", afterLevel: "После уровня", picks: "Берёт наград",
     amount: "Сколько", kind: "Вид", item: "Что", feature: "Способность", title: "Название", showOnMap: "На карте",
+    subLevelTutorials: "обучение подуровней, запись", subLevel: "Подуровень", word: "Слово",
   },
 
   num(name) { const m = Sync.LEVEL.exec(name || ""); return m ? +m[1] : 0; },
@@ -2046,6 +2130,11 @@ function levelIssues(d) {
     if (!(s.tasks || []).length) e.push(`подуровень ${i + 1}: нет заданий`);
     else if (s.tasks.some((t) => !t.type)) e.push(`подуровень ${i + 1}: у задания в списке не выбран тип`);
   });
+  for (const t of d.subLevelTutorials || []) {
+    const n = t.subLevel | 0;
+    if (n > subs.length) e.push(`обучение подуровня ${n}: такого подуровня нет (подуровней ${subs.length})`);
+    if (!t.tutorial || t.tutorial === "None") e.push(`обучение подуровня ${n}: не выбрано обучение`);
+  }
   const start = d.startObjects | 0, stones = d.stones | 0, max = d.maxObjects | 0;
   if (stones >= start) e.push(`камней ${stones} при ${start} объектах на старте — шаров на старте не будет`);
   if (max > 0 && stones >= max) e.push(`камней ${stones} при лимите объектов ${max} — шаров на старте не будет`);
@@ -2171,7 +2260,7 @@ const Local = {
       const src = datas[after - 1] || datas[0];
       const d = src ? clone(src) : { subLevels: [{ id: "", order: "Together", tasks: [] }] };
       d.id = Sync.newId(); delete d.config; delete d.prefab;
-      d.hard = false; d.tutorial = "None"; d.tutorialWord = "";
+      d.hard = false; d.tutorial = "None"; d.tutorialWord = ""; d.subLevelTutorials = [];
       for (const s of d.subLevels || []) s.id = "";
       datas.splice(after, 0, d);
       await this.setLevels(datas);

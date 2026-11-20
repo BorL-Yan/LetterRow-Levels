@@ -6,9 +6,9 @@
   "coins": 0,
   "threeStarScore": 450,
   "stars": [
-    200,
-    375,
-    500
+    180,
+    338,
+    450
   ],
   "startObjects": 30,
   "stones": 0,
@@ -21,6 +21,7 @@
   "startWords": [],
   "tutorial": "TaskLetterWord",
   "tutorialWord": "",
+  "subLevelTutorials": [],
   "subLevels": [
     {
       "id": "fca9dc10e31543fd8870d384f1916b19",
@@ -39,7 +40,7 @@
       ]
     },
     {
-      "id": "",
+      "id": "bf747613ec5642f7a9b15fb84df7749a",
       "order": "Together",
       "tasks": [
         {
