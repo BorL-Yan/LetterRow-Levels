@@ -4,7 +4,7 @@
   "hard": true,
   "steps": 20,
   "coins": 0,
-  "threeStarScore": 500,
+  "threeStarScore": 0,
   "stars": [
     200,
     375,
@@ -15,7 +15,7 @@
   "maxObjects": 0,
   "wordTier": "A1",
   "wordDifficulty": [
-    0.0,
+    0,
     0.3
   ],
   "startWords": [

@@ -46,6 +46,19 @@
           }
         }
       ]
+    },
+    {
+      "id": "",
+      "order": "Together",
+      "tasks": [
+        {
+          "type": "ScorePointsTask",
+          "settings": {
+            "_points": 300,
+            "_text": "Score {0} points"
+          }
+        }
+      ]
     }
   ],
   "prefab": "Assets/Prefabs/Game/Levels/Level_04.prefab",
