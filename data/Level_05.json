@@ -4,7 +4,7 @@
   "hard": true,
   "steps": 20,
   "coins": 0,
-  "threeStarScore": 0,
+  "threeStarScore": 2000,
   "stars": [
     200,
     375,
@@ -31,18 +31,41 @@
         {
           "type": "ScorePointsTask",
           "settings": {
-            "_points": 100,
+            "_points": 900,
             "_text": "Score {0} points"
           }
         },
         {
           "type": "UseLetterTask",
           "settings": {
-            "_letter": "A",
+            "_letter": "L",
             "_times": 10,
             "_text": "Use letter {0} {1} times",
             "_minOnScene": 0,
             "_maxOnScene": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "",
+      "order": "Together",
+      "tasks": [
+        {
+          "type": "UseLetterTask",
+          "settings": {
+            "_letter": "H",
+            "_times": 3,
+            "_text": "Use letter {0} {1} times",
+            "_minOnScene": 0,
+            "_maxOnScene": 0
+          }
+        },
+        {
+          "type": "ScorePointsTask",
+          "settings": {
+            "_points": 600,
+            "_text": "Score {0} points"
           }
         }
       ]
