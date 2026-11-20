@@ -2,7 +2,7 @@
   "unlocks": [
     {
       "feature": "LinkSynergy",
-      "level": 4,
+      "level": 3,
       "title": "Link Synergy",
       "tutorial": "LinkSynergy",
       "showOnMap": true
@@ -16,7 +16,7 @@
     },
     {
       "feature": "BoosterLongestWord",
-      "level": 7,
+      "level": 5,
       "title": "Long Word Booster",
       "tutorial": "BoosterTap",
       "showOnMap": true
@@ -101,7 +101,7 @@
   ],
   "bonusLevels": [
     {
-      "afterLevel": 5,
+      "afterLevel": 4,
       "picks": 3,
       "rewards": [
         {

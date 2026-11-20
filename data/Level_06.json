@@ -1,6 +1,6 @@
 {
   "level": 6,
-  "id": "bc3a2927b78441a7a689109b9d358925",
+  "id": "cb37d1d625ab48bfadecb3d55adafdba",
   "hard": false,
   "steps": 20,
   "coins": 0,
@@ -29,17 +29,15 @@
       "order": "Together",
       "tasks": [
         {
-          "type": "MinLengthWordTask",
+          "type": "ScorePointsTask",
           "settings": {
-            "_letters": 5,
-            "_words": 1,
-            "_text": "Make a word of {0} letters",
-            "_wordsOnScene": 0
+            "_points": 25,
+            "_text": "Score {0} points"
           }
         }
       ]
     }
   ],
-  "prefab": "Assets/Prefabs/Game/Levels/Level_06.prefab",
-  "config": "Assets/Resources/Levels/Level_06.asset"
+  "prefab": "Assets/Prefabs/Game/Levels/Level_07.prefab",
+  "config": "Assets/Resources/Levels/Level_07.asset"
 }

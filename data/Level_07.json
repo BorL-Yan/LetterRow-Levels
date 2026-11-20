@@ -1,10 +1,10 @@
 {
   "level": 7,
-  "id": "cb37d1d625ab48bfadecb3d55adafdba",
-  "hard": false,
+  "id": "093d1c21814741cdb999b9ef8078f14b",
+  "hard": true,
   "steps": 20,
   "coins": 0,
-  "threeStarScore": 500,
+  "threeStarScore": 2000,
   "stars": [
     200,
     375,
@@ -15,13 +15,13 @@
   "maxObjects": 0,
   "wordTier": "A1",
   "wordDifficulty": [
-    0.0,
+    0,
     0.3
   ],
   "startWords": [
     "Star"
   ],
-  "tutorial": "None",
+  "tutorial": "BoosterTap",
   "tutorialWord": "",
   "subLevels": [
     {
@@ -31,13 +31,46 @@
         {
           "type": "ScorePointsTask",
           "settings": {
-            "_points": 25,
+            "_points": 900,
+            "_text": "Score {0} points"
+          }
+        },
+        {
+          "type": "UseLetterTask",
+          "settings": {
+            "_letter": "L",
+            "_times": 10,
+            "_text": "Use letter {0} {1} times",
+            "_minOnScene": 0,
+            "_maxOnScene": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "",
+      "order": "Together",
+      "tasks": [
+        {
+          "type": "UseLetterTask",
+          "settings": {
+            "_letter": "H",
+            "_times": 3,
+            "_text": "Use letter {0} {1} times",
+            "_minOnScene": 0,
+            "_maxOnScene": 0
+          }
+        },
+        {
+          "type": "ScorePointsTask",
+          "settings": {
+            "_points": 600,
             "_text": "Score {0} points"
           }
         }
       ]
     }
   ],
-  "prefab": "Assets/Prefabs/Game/Levels/Level_07.prefab",
-  "config": "Assets/Resources/Levels/Level_07.asset"
+  "prefab": "Assets/Prefabs/Game/Levels/Level_05.prefab",
+  "config": "Assets/Resources/Levels/Level_05.asset"
 }
