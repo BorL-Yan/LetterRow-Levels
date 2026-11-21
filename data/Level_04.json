@@ -1,25 +1,25 @@
 {
   "level": 4,
-  "id": "890e3883843a4c68a8451d35efd9c5d0",
+  "id": "bc3a2927b78441a7a689109b9d358925",
   "hard": false,
-  "steps": 25,
+  "steps": 20,
   "coins": 0,
-  "threeStarScore": 1200,
+  "threeStarScore": 500,
   "stars": [
-    480,
-    900,
-    1200
+    200,
+    375,
+    500
   ],
   "startObjects": 30,
   "stones": 0,
   "maxObjects": 0,
   "wordTier": "A1",
   "wordDifficulty": [
-    0.0,
-    0.1
+    0,
+    0.3
   ],
   "startWords": [
-    "ALLIGATOR"
+    "Star"
   ],
   "tutorial": "None",
   "tutorialWord": "",
@@ -30,38 +30,17 @@
       "order": "Together",
       "tasks": [
         {
-          "type": "ScorePointsTask",
+          "type": "MinLengthWordTask",
           "settings": {
-            "_points": 750,
-            "_text": "Score {0} points"
-          }
-        },
-        {
-          "type": "UseLetterTask",
-          "settings": {
-            "_letter": "A",
-            "_times": 7,
-            "_text": "Use letter {0} {1} times",
-            "_minOnScene": 0,
-            "_maxOnScene": 0
-          }
-        }
-      ]
-    },
-    {
-      "id": "5082b434a75546289acd65994808c6a0",
-      "order": "Together",
-      "tasks": [
-        {
-          "type": "ScorePointsTask",
-          "settings": {
-            "_points": 300,
-            "_text": "Score {0} points"
+            "_letters": 5,
+            "_words": 1,
+            "_text": "Make a word of {0} letters",
+            "_wordsOnScene": 0
           }
         }
       ]
     }
   ],
-  "prefab": "Assets/Prefabs/Game/Levels/Level_04.prefab",
-  "config": "Assets/Resources/Levels/Level_04.asset"
+  "prefab": "Assets/Prefabs/Game/Levels/Level_05.prefab",
+  "config": "Assets/Resources/Levels/Level_05.asset"
 }

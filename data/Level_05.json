@@ -1,25 +1,25 @@
 {
   "level": 5,
-  "id": "bc3a2927b78441a7a689109b9d358925",
+  "id": "890e3883843a4c68a8451d35efd9c5d0",
   "hard": false,
-  "steps": 20,
+  "steps": 25,
   "coins": 0,
-  "threeStarScore": 500,
+  "threeStarScore": 1200,
   "stars": [
-    200,
-    375,
-    500
+    480,
+    900,
+    1200
   ],
   "startObjects": 30,
   "stones": 0,
   "maxObjects": 0,
   "wordTier": "A1",
   "wordDifficulty": [
-    0.0,
-    0.3
+    0,
+    0.1
   ],
   "startWords": [
-    "Star"
+    "ALLIGATOR"
   ],
   "tutorial": "None",
   "tutorialWord": "",
@@ -30,17 +30,38 @@
       "order": "Together",
       "tasks": [
         {
-          "type": "MinLengthWordTask",
+          "type": "ScorePointsTask",
           "settings": {
-            "_letters": 5,
-            "_words": 1,
-            "_text": "Make a word of {0} letters",
-            "_wordsOnScene": 0
+            "_points": 750,
+            "_text": "Score {0} points"
+          }
+        },
+        {
+          "type": "UseLetterTask",
+          "settings": {
+            "_letter": "A",
+            "_times": 7,
+            "_text": "Use letter {0} {1} times",
+            "_minOnScene": 0,
+            "_maxOnScene": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "5082b434a75546289acd65994808c6a0",
+      "order": "Together",
+      "tasks": [
+        {
+          "type": "ScorePointsTask",
+          "settings": {
+            "_points": 300,
+            "_text": "Score {0} points"
           }
         }
       ]
     }
   ],
-  "prefab": "Assets/Prefabs/Game/Levels/Level_05.prefab",
-  "config": "Assets/Resources/Levels/Level_05.asset"
+  "prefab": "Assets/Prefabs/Game/Levels/Level_04.prefab",
+  "config": "Assets/Resources/Levels/Level_04.asset"
 }
