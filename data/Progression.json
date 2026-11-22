@@ -2,21 +2,21 @@
   "unlocks": [
     {
       "feature": "LinkSynergy",
-      "level": 3,
+      "level": 7,
       "title": "Link Synergy",
       "tutorial": "LinkSynergy",
       "showOnMap": true
     },
     {
       "feature": "LongWordMultiplier",
-      "level": 5,
+      "level": 3,
       "title": "Long Word Bonus",
       "tutorial": "None",
       "showOnMap": true
     },
     {
       "feature": "BoosterLongestWord",
-      "level": 7,
+      "level": 5,
       "title": "Long Word Booster",
       "tutorial": "BoosterTap",
       "showOnMap": true
@@ -30,7 +30,7 @@
     },
     {
       "feature": "BoosterMultiplier",
-      "level": 12,
+      "level": 6,
       "title": "x2 Booster",
       "tutorial": "BoosterTap",
       "showOnMap": true
