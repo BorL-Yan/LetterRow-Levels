@@ -15,7 +15,7 @@
   "maxObjects": 0,
   "wordTier": "A1",
   "wordDifficulty": [
-    0,
+    0.0,
     0.3
   ],
   "startWords": [
@@ -41,6 +41,6 @@
       ]
     }
   ],
-  "prefab": "Assets/Prefabs/Game/Levels/Level_05.prefab",
-  "config": "Assets/Resources/Levels/Level_05.asset"
+  "prefab": "Assets/Prefabs/Game/Levels/Level_04.prefab",
+  "config": "Assets/Resources/Levels/Level_04.asset"
 }
