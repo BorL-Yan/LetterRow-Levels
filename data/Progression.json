@@ -101,7 +101,7 @@
   ],
   "bonusLevels": [
     {
-      "afterLevel": 5,
+      "afterLevel": 4,
       "picks": 3,
       "rewards": [
         {
